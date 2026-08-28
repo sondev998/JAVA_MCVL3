@@ -235,6 +235,154 @@ public final class PatchAutoPopup {
         mvFight.visitMaxs(3, 2);
         mvFight.visitEnd();
 
+        // 4. public static java.util.Vector getEntityList()
+        MethodVisitor mvEnt = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "getEntityList", "()Ljava/util/Vector;", null, null);
+        mvEnt.visitCode();
+        mvEnt.visitFieldInsn(Opcodes.GETSTATIC, "a/ay", "k", "Ljava/util/Vector;");
+        mvEnt.visitInsn(Opcodes.ARETURN);
+        mvEnt.visitMaxs(1, 0);
+        mvEnt.visitEnd();
+
+        // 5. public static java.util.Vector getNpcTable()
+        MethodVisitor mvNpc = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "getNpcTable", "()Ljava/util/Vector;", null, null);
+        mvNpc.visitCode();
+        mvNpc.visitFieldInsn(Opcodes.GETSTATIC, "a/ay", "h", "Ljava/util/Vector;");
+        mvNpc.visitInsn(Opcodes.ARETURN);
+        mvNpc.visitMaxs(1, 0);
+        mvNpc.visitEnd();
+
+        // 6. public static String getEntityName(Object obj)
+        MethodVisitor mvName = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "getEntityName", "(Ljava/lang/Object;)Ljava/lang/String;", null, null);
+        mvName.visitCode();
+        Label startName = new Label();
+        Label endName = new Label();
+        Label handlerName = new Label();
+        mvName.visitTryCatchBlock(startName, endName, handlerName, "java/lang/Throwable");
+        mvName.visitLabel(startName);
+        mvName.visitVarInsn(Opcodes.ALOAD, 0);
+        mvName.visitTypeInsn(Opcodes.CHECKCAST, "a/m");
+        mvName.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "a/m", "a", "()Ljava/lang/String;");
+        mvName.visitLabel(endName);
+        mvName.visitInsn(Opcodes.ARETURN);
+        mvName.visitLabel(handlerName);
+        mvName.visitVarInsn(Opcodes.ASTORE, 1);
+        mvName.visitInsn(Opcodes.ACONST_NULL);
+        mvName.visitInsn(Opcodes.ARETURN);
+        mvName.visitMaxs(1, 2);
+        mvName.visitEnd();
+
+        // 7. public static int getEntityX(Object obj)
+        MethodVisitor mvX = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "getEntityX", "(Ljava/lang/Object;)I", null, null);
+        mvX.visitCode();
+        Label startX = new Label();
+        Label endX = new Label();
+        Label handlerX = new Label();
+        mvX.visitTryCatchBlock(startX, endX, handlerX, "java/lang/Throwable");
+        mvX.visitLabel(startX);
+        mvX.visitVarInsn(Opcodes.ALOAD, 0);
+        mvX.visitTypeInsn(Opcodes.CHECKCAST, "a/m");
+        mvX.visitFieldInsn(Opcodes.GETFIELD, "a/y", "q", "B");
+        mvX.visitLabel(endX);
+        mvX.visitInsn(Opcodes.IRETURN);
+        mvX.visitLabel(handlerX);
+        mvX.visitVarInsn(Opcodes.ASTORE, 1);
+        mvX.visitInsn(Opcodes.ICONST_0);
+        mvX.visitInsn(Opcodes.IRETURN);
+        mvX.visitMaxs(1, 2);
+        mvX.visitEnd();
+
+        // 8. public static int getEntityY(Object obj)
+        MethodVisitor mvY = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "getEntityY", "(Ljava/lang/Object;)I", null, null);
+        mvY.visitCode();
+        Label startY = new Label();
+        Label endY = new Label();
+        Label handlerY = new Label();
+        mvY.visitTryCatchBlock(startY, endY, handlerY, "java/lang/Throwable");
+        mvY.visitLabel(startY);
+        mvY.visitVarInsn(Opcodes.ALOAD, 0);
+        mvY.visitTypeInsn(Opcodes.CHECKCAST, "a/m");
+        mvY.visitFieldInsn(Opcodes.GETFIELD, "a/y", "r", "B");
+        mvY.visitLabel(endY);
+        mvY.visitInsn(Opcodes.IRETURN);
+        mvY.visitLabel(handlerY);
+        mvY.visitVarInsn(Opcodes.ASTORE, 1);
+        mvY.visitInsn(Opcodes.ICONST_0);
+        mvY.visitInsn(Opcodes.IRETURN);
+        mvY.visitMaxs(1, 2);
+        mvY.visitEnd();
+
+        // 9. public static int getEntityId(Object obj)
+        MethodVisitor mvId = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "getEntityId", "(Ljava/lang/Object;)I", null, null);
+        mvId.visitCode();
+        Label startId = new Label();
+        Label endId = new Label();
+        Label handlerId = new Label();
+        mvId.visitTryCatchBlock(startId, endId, handlerId, "java/lang/Throwable");
+        mvId.visitLabel(startId);
+        mvId.visitVarInsn(Opcodes.ALOAD, 0);
+        mvId.visitTypeInsn(Opcodes.CHECKCAST, "a/m");
+        mvId.visitFieldInsn(Opcodes.GETFIELD, "a/y", "j", "I");
+        mvId.visitLabel(endId);
+        mvId.visitInsn(Opcodes.IRETURN);
+        mvId.visitLabel(handlerId);
+        mvId.visitVarInsn(Opcodes.ASTORE, 1);
+        mvId.visitInsn(Opcodes.ICONST_0);
+        mvId.visitInsn(Opcodes.IRETURN);
+        mvId.visitMaxs(1, 2);
+        mvId.visitEnd();
+
+        // 10. public static String getAfString(Object obj)
+        MethodVisitor mvAf = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "getAfString", "(Ljava/lang/Object;)Ljava/lang/String;", null, null);
+        mvAf.visitCode();
+        Label sStart = new Label();
+        Label sEnd = new Label();
+        Label sHandler = new Label();
+        mvAf.visitTryCatchBlock(sStart, sEnd, sHandler, "java/lang/Throwable");
+        mvAf.visitLabel(sStart);
+        mvAf.visitVarInsn(Opcodes.ALOAD, 0);
+        mvAf.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Object", "toString", "()Ljava/lang/String;");
+        mvAf.visitLabel(sEnd);
+        mvAf.visitInsn(Opcodes.ARETURN);
+        mvAf.visitLabel(sHandler);
+        mvAf.visitVarInsn(Opcodes.ASTORE, 1);
+        mvAf.visitInsn(Opcodes.ACONST_NULL);
+        mvAf.visitInsn(Opcodes.ARETURN);
+        mvAf.visitMaxs(1, 2);
+        mvAf.visitEnd();
+
+        // 11. public static void talkNpc(int npcId)
+        MethodVisitor mvTalk = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "talkNpc", "(I)V", null, null);
+        mvTalk.visitCode();
+        Label tTalkStart = new Label();
+        Label tTalkEnd = new Label();
+        Label tTalkHandler = new Label();
+        mvTalk.visitTryCatchBlock(tTalkStart, tTalkEnd, tTalkHandler, "java/lang/Throwable");
+        mvTalk.visitLabel(tTalkStart);
+        mvTalk.visitMethodInsn(Opcodes.INVOKESTATIC, "a/z", "a", "()La/z;");
+        mvTalk.visitIntInsn(Opcodes.SIPUSH, 1032);
+        mvTalk.visitTypeInsn(Opcodes.NEW, "a/t");
+        mvTalk.visitInsn(Opcodes.DUP);
+        mvTalk.visitIntInsn(Opcodes.BIPUSH, 1);
+        mvTalk.visitMethodInsn(Opcodes.INVOKESPECIAL, "a/t", "<init>", "(B)V");
+        mvTalk.visitTypeInsn(Opcodes.NEW, "a/an");
+        mvTalk.visitInsn(Opcodes.DUP);
+        mvTalk.visitVarInsn(Opcodes.ILOAD, 0); // npcId
+        mvTalk.visitMethodInsn(Opcodes.INVOKESPECIAL, "a/an", "<init>", "(I)V");
+        mvTalk.visitTypeInsn(Opcodes.NEW, "a/an");
+        mvTalk.visitInsn(Opcodes.DUP);
+        mvTalk.visitInsn(Opcodes.ICONST_0);
+        mvTalk.visitMethodInsn(Opcodes.INVOKESPECIAL, "a/an", "<init>", "(I)V");
+        mvTalk.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "a/z", "a", "(ILa/af;La/af;La/af;)V");
+        mvTalk.visitLabel(tTalkEnd);
+        Label tTalkFinish = new Label();
+        mvTalk.visitJumpInsn(Opcodes.GOTO, tTalkFinish);
+        mvTalk.visitLabel(tTalkHandler);
+        mvTalk.visitVarInsn(Opcodes.ASTORE, 1);
+        mvTalk.visitLabel(tTalkFinish);
+        mvTalk.visitInsn(Opcodes.RETURN);
+        mvTalk.visitMaxs(7, 2);
+        mvTalk.visitEnd();
+
         cw.visitEnd();
         return cw.toByteArray();
     }

@@ -1,5 +1,6 @@
 package a;
 
+import java.util.Vector;
 import javax.microedition.lcdui.Font;
 import javax.microedition.lcdui.Graphics;
 
@@ -16,7 +17,7 @@ public final class AutoMenu {
     public static boolean autoPlantEnabled = false;
     public static boolean autoHarvestEnabled = false;
     public static boolean isAutoPhuBan = false;
-    public static int bossNum = 0;
+    public static int bossNum = 0; // 0: Boss 1, 1: Boss 2, 2: Boss 3, 3: NPC Dương Quá
 
     // 4 Phụ bản thực tế trong mã nguồn game (Cấm địa Tuyệt tình cốc)
     public static final String[] DUNGEON_LIST = {
@@ -36,12 +37,161 @@ public final class AutoMenu {
     public static int selectedDungeon = 0;
 
     /**
+     * Chuẩn hóa chuỗi tiếng Việt (chuyển chữ thường, bỏ dấu) để so sánh tên quái/NPC chính xác.
+     */
+    public static String normalize(String s) {
+        if (s == null) return "";
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c >= 'A' && c <= 'Z') {
+                c = (char)(c + 32);
+            }
+            if (c == '\u00e0' || c == '\u00e1' || c == '\u1ea3' || c == '\u00e3' || c == '\u1ea1' ||
+                c == '\u0103' || c == '\u1eb1' || c == '\u1eaf' || c == '\u1eb3' || c == '\u1eb5' || c == '\u1eb7' ||
+                c == '\u00e2' || c == '\u1ea7' || c == '\u1ea5' || c == '\u1ea9' || c == '\u1eab' || c == '\u1ead') {
+                c = 'a';
+            } else if (c == '\u0111' || c == '\u0110') {
+                c = 'd';
+            } else if (c == '\u00e8' || c == '\u00e9' || c == '\u1ebb' || c == '\u1ebd' || c == '\u1eb9' ||
+                       c == '\u00ea' || c == '\u1ec1' || c == '\u1ebf' || c == '\u1ec3' || c == '\u1ec5' || c == '\u1ec7') {
+                c = 'e';
+            } else if (c == '\u00ec' || c == '\u00ed' || c == '\u1ec9' || c == '\u0129' || c == '\u1ecb') {
+                c = 'i';
+            } else if (c == '\u00f2' || c == '\u00f3' || c == '\u1ecf' || c == '\u00f5' || c == '\u1ecd' ||
+                       c == '\u00f4' || c == '\u1ed3' || c == '\u1ed1' || c == '\u1ed5' || c == '\u1ed7' || c == '\u1ed9' ||
+                       c == '\u01a1' || c == '\u1edd' || c == '\u1edb' || c == '\u1edf' || c == '\u1ee1' || c == '\u1ee3') {
+                c = 'o';
+            } else if (c == '\u00f9' || c == '\u00fa' || c == '\u1ee7' || c == '\u0169' || c == '\u1ee5' ||
+                       c == '\u01b0' || c == '\u1eeb' || c == '\u1ee9' || c == '\u1eed' || c == '\u1eef' || c == '\u1ef1') {
+                c = 'u';
+            } else if (c == '\u1ef3' || c == '\u00fd' || c == '\u1ef7' || c == '\u1ef9' || c == '\u1ef5') {
+                c = 'y';
+            }
+            if (c >= '\u0300' && c <= '\u032f') {
+                continue;
+            }
+            sb.append(c);
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Tìm kiếm thực thể (Boss hoặc NPC) trên map theo tên.
+     * Quét cả 2 nguồn dữ liệu:
+     * 1. ay.k: Các thực thể đang active xung quanh viewport
+     * 2. ay.h: Bảng định nghĩa toàn bộ NPC / quái của toàn map
+     * Trả về mảng {x, y, id} nếu tìm thấy, ngược lại trả về null.
+     */
+    public static int[] findEntityByName(String keyword) {
+        String target = normalize(keyword);
+        System.out.println("[AutoPB-Scan] >>> Searching keyword: '" + keyword + "' (norm: '" + target + "')");
+        try {
+            // 1. Quét ay.k (các thực thể xung quanh viewport)
+            Vector list = MCT.getEntityList();
+            if (list != null) {
+                for (int i = list.size() - 1; i >= 0; i--) {
+                    Object obj = list.elementAt(i);
+                    if (obj != null) {
+                        try {
+                            String name = MCT.getEntityName(obj);
+                            int x = MCT.getEntityX(obj);
+                            int y = MCT.getEntityY(obj);
+                            int id = MCT.getEntityId(obj);
+                            String normName = normalize(name);
+                            if (normName.indexOf(target) != -1) {
+                                System.out.println("[AutoPB-Scan]   ===> MATCHED IN ay.k! Found: '" + name + "' at (" + x + "," + y + "), id=" + id);
+                                return new int[]{x, y, id};
+                            }
+                        } catch (Throwable t) {}
+                    }
+                }
+            }
+
+            // 2. Quét ay.h (bảng định nghĩa toàn bộ NPC/quái của cả map)
+            Vector npcs = MCT.getNpcTable();
+            if (npcs != null) {
+                for (int i = 0; i < npcs.size(); i++) {
+                    Object item = npcs.elementAt(i);
+                    if (item instanceof af[]) {
+                        af[] arr = (af[]) item;
+                        int id = arr.length > 0 && arr[0] != null ? arr[0].b() : -1;
+                        int x = arr.length > 1 && arr[1] != null ? arr[1].b() : -1;
+                        int y = arr.length > 2 && arr[2] != null ? arr[2].b() : -1;
+                        String name = "";
+                        StringBuffer arrContent = new StringBuffer();
+                        for (int k = 0; k < arr.length; k++) {
+                            if (arr[k] != null) {
+                                String sVal = MCT.getAfString(arr[k]);
+                                int iVal = arr[k].b();
+                                arrContent.append("[").append(k).append(": '").append(sVal).append("'|").append(iVal).append("] ");
+                                if (arr[k] instanceof j && (name == null || name.trim().length() == 0)) {
+                                    name = sVal;
+                                }
+                            }
+                        }
+                        String normName = normalize(name);
+                        System.out.println("[AutoPB-Scan]   ay.h[" + i + "]: name='" + name + "' (norm='" + normName + "') at (" + x + "," + y + "), id=" + id + " | content: " + arrContent.toString());
+                        if (name.length() > 0 && normName.indexOf(target) != -1) {
+                            System.out.println("[AutoPB-Scan]   ===> MATCHED IN ay.h! Found: '" + name + "' at (" + x + "," + y + "), id=" + id);
+                            return new int[]{x, y, id};
+                        }
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            System.out.println("[AutoPB-Scan] Exception in findEntityByName: " + t);
+        }
+        System.out.println("[AutoPB-Scan] ===> NOT FOUND: '" + keyword + "'");
+        return null;
+    }
+
+    public static int[] findBoss1() {
+        int[] pos = findEntityByName("phan nhat ong");
+        if (pos != null) return pos;
+        pos = findEntityByName("phan nhat");
+        if (pos != null) return pos;
+        pos = findEntityByName("nhat ong");
+        if (pos != null) return pos;
+        return null;
+    }
+
+    public static int[] findBoss2() {
+        int[] pos = findEntityByName("thien xich");
+        if (pos != null) return pos;
+        pos = findEntityByName("cau thien");
+        if (pos != null) return pos;
+        pos = findEntityByName("cuu thien");
+        if (pos != null) return pos;
+        pos = findEntityByName("thien chi");
+        if (pos != null) return pos;
+        return null;
+    }
+
+    public static int[] findBoss3() {
+        int[] pos = findEntityByName("cong ton chi");
+        if (pos != null) return pos;
+        pos = findEntityByName("cong ton");
+        if (pos != null) return pos;
+        return null;
+    }
+
+    public static int[] findNpcDuongQua() {
+        int[] pos = findEntityByName("duong qua");
+        if (pos != null) return pos;
+        return null;
+    }
+
+    /**
      * Chuyển nhân vật đến ngay map cổng phụ bản Tuyệt tình cốc.
      */
     public static void teleToTTC() {
+        System.out.println("[AutoPB] teleToTTC called!");
         try {
             MCT.tele();
-        } catch (Throwable t) {}
+        } catch (Throwable t) {
+            System.out.println("[AutoPB] teleToTTC error: " + t);
+        }
         try {
             f.a(21);
         } catch (Throwable t) {}
@@ -54,66 +204,119 @@ public final class AutoMenu {
     }
 
     /**
-     * Tự động di chuyển nhân vật đến vị trí của Boss trong phụ bản Tuyệt tình cốc.
-     * Boss 0: Tọa độ (11, 16)
-     * Boss 1: Tọa độ (30, 50)
-     * Boss 2: Tọa độ (30, 25)
+     * Tự động tìm kiếm Boss hoặc NPC tương ứng theo tên trên map để di chuyển tới.
+     * Target 0: Boss 1 ("Phàn nhất ông")
+     * Target 1: Boss 2 ("Cầu thiên xích / chỉ")
+     * Target 2: Boss 3 ("Công tôn chỉ")
+     * Target 3: NPC "Dương Quá" -> Tiếp cận và kích hoạt hội thoại
      */
-    public static void moveToBoss(int bossIndex) {
+    public static void moveToTarget(int targetIndex) {
+        System.out.println("[AutoPB-Move] moveToTarget: index=" + targetIndex + " (0=Phàn nhất ông, 1=Cầu/Cừu thiên xích/chỉ, 2=Công tôn chỉ, 3=Dương Quá)");
         try {
-            if (bossIndex == 0) {
-                MCT.moveTo(11, 16);
-            } else if (bossIndex == 1) {
-                MCT.moveTo(30, 50);
-            } else if (bossIndex >= 2) {
-                MCT.moveTo(30, 25);
+            if (targetIndex == 0) {
+                // Boss 1: Phàn nhất ông
+                int[] pos = findBoss1();
+                if (pos != null) {
+                    System.out.println("[AutoPB-Move] Moving to Boss 1 (dynamic): (" + pos[0] + ", " + pos[1] + "), id=" + pos[2]);
+                    MCT.moveTo(pos[0], pos[1]);
+                } else {
+                    System.out.println("[AutoPB-Move] Boss 1 not found in scan! Moving to fallback (11, 16)");
+                    MCT.moveTo(11, 16);
+                }
+                MCT.setAutoFight(true);
+            } else if (targetIndex == 1) {
+                // Boss 2: Cầu/Cừu thiên xích / Cầu thiên chỉ
+                int[] pos = findBoss2();
+                if (pos != null) {
+                    System.out.println("[AutoPB-Move] Moving to Boss 2 (dynamic): (" + pos[0] + ", " + pos[1] + "), id=" + pos[2]);
+                    MCT.moveTo(pos[0], pos[1]);
+                } else {
+                    System.out.println("[AutoPB-Move] Boss 2 not found in scan!");
+                }
+                MCT.setAutoFight(true);
+            } else if (targetIndex == 2) {
+                // Boss 3: Công tôn chỉ
+                int[] pos = findBoss3();
+                if (pos != null) {
+                    System.out.println("[AutoPB-Move] Moving to Boss 3 (dynamic): (" + pos[0] + ", " + pos[1] + "), id=" + pos[2]);
+                    MCT.moveTo(pos[0], pos[1]);
+                } else {
+                    System.out.println("[AutoPB-Move] Boss 3 not found in scan!");
+                }
+                MCT.setAutoFight(true);
+            } else if (targetIndex == 3) {
+                // NPC: Dương Quá
+                MCT.setAutoFight(false);
+                int[] pos = findNpcDuongQua();
+                if (pos != null) {
+                    System.out.println("[AutoPB-Move] Moving to NPC Dương Quá: (" + pos[0] + ", " + pos[1] + "), id=" + pos[2]);
+                    MCT.moveTo(pos[0], pos[1]);
+                    System.out.println("[AutoPB-Move] Sending talk packet to Dương Quá id=" + pos[2]);
+                    MCT.talkNpc(pos[2]);
+                } else {
+                    System.out.println("[AutoPB-Move] NPC Dương Quá not found in scan!");
+                }
             }
-            MCT.setAutoFight(true);
-        } catch (Throwable t) {}
+        } catch (Throwable t) {
+            System.out.println("[AutoPB-Move] Exception in moveToTarget: " + t);
+        }
     }
 
     /**
      * Nhận event chuỗi text từ server (được tiêm tự động vào a.z method a(I)Ljava/lang/String;).
-     * Phát hiện khi nhận "Giang hồ lệnh bài" để chuyển sang đánh boss tiếp theo.
+     * Phát hiện khi nhận "Giang hồ lệnh bài" để tìm và chuyển sang Boss/NPC tiếp theo.
      */
     public static void onServerMessage(String msg) {
-        if (!isAutoPhuBan || msg == null) return;
+        if (msg == null) return;
+        String norm = normalize(msg);
+        System.out.println("[AutoPB-Msg] raw: '" + msg + "' | norm: '" + norm + "' | isAutoPhuBan=" + isAutoPhuBan + " | bossNum=" + bossNum);
 
-        boolean hasNhanDuoc = msg.indexOf("nh\u00e2\u0323n \u0111\u01b0\u01a1\u0323c") != -1
-                           || msg.indexOf("nh\u1eadn \u0111\u01b0\u1ee3c") != -1
-                           || msg.startsWith("Ba\u0323n nh\u00e2\u0323n")
-                           || msg.startsWith("B\u1ea1n nh\u1eadn");
+        if (!isAutoPhuBan) return;
 
-        boolean hasLenhBai = msg.indexOf("Giang h\u00f4\u0300 l\u00ea\u0323nh ba\u0300i") != -1
-                          || msg.indexOf("Giang h\u1ed3 l\u1ec7nh b\u00e0i") != -1
-                          || (msg.indexOf("Giang h") != -1 && msg.indexOf("l\u1ec7nh b\u00e0i") != -1)
-                          || (msg.indexOf("Giang h") != -1 && msg.indexOf("ba\u0300i") != -1);
+        // Kiểm tra nhận được Giang Hồ Lệnh Bài
+        boolean hasNhanDuoc = norm.indexOf("nhan duoc") != -1 || norm.startsWith("ban nhan");
+        boolean hasLenhBai = norm.indexOf("giang ho lenh bai") != -1 || (norm.indexOf("giang ho") != -1 && norm.indexOf("lenh bai") != -1);
 
         if (hasNhanDuoc && hasLenhBai) {
+            System.out.println("[AutoPB-Msg] >>> DETECTED Giang Ho Lenh Bai! Current bossNum=" + bossNum);
             if (bossNum == 0) {
                 bossNum = 1;
-                moveToBoss(1);
+                System.out.println("[AutoPB-Msg] >>> Advancing to Boss 2 (Cầu/Cừu thiên xích)...");
+                moveToTarget(1);
             } else if (bossNum == 1) {
                 bossNum = 2;
-                moveToBoss(2);
-            } else {
+                System.out.println("[AutoPB-Msg] >>> Advancing to Boss 3 (Công tôn chỉ)...");
+                moveToTarget(2);
+            } else if (bossNum == 2) {
+                bossNum = 3;
+                System.out.println("[AutoPB-Msg] >>> Killed 3 Bosses! Advancing to NPC Dương Quá...");
+                moveToTarget(3);
+            }
+        } else if (bossNum == 3) {
+            // Khi đang ở trạng thái tương tác với Dương Quá, nếu có tùy chọn rời khỏi
+            if (norm.indexOf("roi khoi") != -1 || norm.indexOf("dua ta roi khoi noi nay") != -1) {
+                System.out.println("[AutoPB-Msg] >>> Detected Exit Dungeon option! Resetting auto state.");
+                isAutoPhuBan = false;
                 bossNum = 0;
             }
-        } else if (msg.indexOf("N\u01a1i n\u00e0y kh\u00f4ng n\u00ean \u1edf l\u1ea1i l\u00e2u") != -1
-                || msg.indexOf("Ph\u1ea7n th\u01b0\u1edfng qua \u1ea3i") != -1) {
+        } else if (norm.indexOf("noi nay khong nen o lai lau") != -1 || norm.indexOf("phan thuong qua ai") != -1) {
+            System.out.println("[AutoPB-Msg] >>> Dungeon complete notification received. Resetting auto state.");
+            isAutoPhuBan = false;
             bossNum = 0;
         }
     }
 
     /**
-     * Checks if the message sent in-game matches the .auto command.
-     * Called when the user clicks the "Gửi" button inside the game.
+     * Kích hoạt mở Popup Auto khi bấm "Gửi" tin nhắn trống (hoặc nhập lệnh .auto).
      */
     public static boolean checkCommand(String input) {
-        if (input != null && ".auto".equalsIgnoreCase(input.trim())) {
+        System.out.println("[AutoMenu] checkCommand input: '" + input + "'");
+        // Mở popup khi tin nhắn trống hoặc gõ .auto
+        if (input == null || input.trim().length() == 0 || ".auto".equalsIgnoreCase(input.trim())) {
             show = true;
             currentScreen = SCREEN_MAIN;
-            // Close in-game chat dialogs so the game interface is clearly visible underneath
+            System.out.println("[AutoMenu] Open popup by empty chat send or .auto command!");
+            // Đóng các hộp thoại chat trong game
             try {
                 f.a(21);
             } catch (Throwable t) {}
@@ -486,6 +689,7 @@ public final class AutoMenu {
                 int itemY = listStartY + i * (itemH + itemGap);
                 if (px >= btnX && px <= btnX + btnW && py >= itemY && py <= itemY + itemH) {
                     selectedDungeon = i;
+                    System.out.println("[AutoMenu] Selected dungeon index: " + i);
                     return true;
                 }
             }
@@ -501,10 +705,12 @@ public final class AutoMenu {
                 if (!isAutoPhuBan) {
                     isAutoPhuBan = true;
                     bossNum = 0;
-                    moveToBoss(0);
+                    System.out.println("[AutoMenu] START clicked! Setting isAutoPhuBan=true, bossNum=0");
+                    moveToTarget(0); // Bắt đầu tìm và đánh Boss 1: Phàn nhất ông
                 } else {
                     isAutoPhuBan = false;
                     bossNum = 0;
+                    System.out.println("[AutoMenu] STOP clicked! Setting isAutoPhuBan=false, bossNum=0");
                     try {
                         MCT.setAutoFight(false);
                     } catch (Throwable t) {}
@@ -515,6 +721,7 @@ public final class AutoMenu {
             int teleBtnX = startBtnX + actBtnW + 8;
             // Click [Đến]
             if (px >= teleBtnX - 2 && px <= teleBtnX + actBtnW + 2 && py >= actBtnY - 2 && py <= actBtnY + actBtnH + 2) {
+                System.out.println("[AutoMenu] 'Đến' clicked! Teleporting to TTC...");
                 teleToTTC();
                 show = false;
                 return true;
