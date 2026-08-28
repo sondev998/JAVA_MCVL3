@@ -38,7 +38,7 @@ public final class PatchAutoPopup {
                 ZipEntry entry = (ZipEntry) entries.nextElement();
                 String name = entry.getName();
 
-                if ("a/AutoMenu.class".equals(name)) {
+                if ("a/AutoMenu.class".equals(name) || "a/MCT.class".equals(name)) {
                     continue;
                 }
 
@@ -72,6 +72,13 @@ public final class PatchAutoPopup {
                 menuIn.close();
                 target.closeEntry();
             }
+
+            // Add generated MCT.class
+            ZipEntry mctEntry = new ZipEntry("a/MCT.class");
+            target.putNextEntry(mctEntry);
+            target.write(generateMCTClass());
+            target.closeEntry();
+
         } finally {
             source.close();
             target.close();
@@ -89,6 +96,78 @@ public final class PatchAutoPopup {
         System.out.println(" - a/ac.class pointerReleased injected: " + injectedAcPointerReleased);
         System.out.println(" - a/ac.class pointerPressed injected: " + injectedAcPointerPressed);
         System.out.println(" - a/ac.class keyPressed injected: " + injectedAcKeyPressed);
+        System.out.println(" - a/MCT.class teleport bytecode generated and injected.");
+    }
+
+    private static byte[] generateMCTClass() {
+        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+        cw.visit(Opcodes.V1_6, Opcodes.ACC_PUBLIC, "a/MCT", null, "java/lang/Object", null);
+
+        // Constructor <init>()
+        MethodVisitor init = cw.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
+        init.visitCode();
+        init.visitVarInsn(Opcodes.ALOAD, 0);
+        init.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V");
+        init.visitInsn(Opcodes.RETURN);
+        init.visitMaxs(1, 1);
+        init.visitEnd();
+
+        // public static void tele()
+        MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "tele", "()V", null, null);
+        mv.visitCode();
+        Label start = new Label();
+        Label end = new Label();
+        Label handler = new Label();
+        mv.visitTryCatchBlock(start, end, handler, "java/lang/Throwable");
+        mv.visitLabel(start);
+        mv.visitFieldInsn(Opcodes.GETSTATIC, "a/u", "a", "La/bb;");
+        mv.visitInsn(Opcodes.DUP);
+        Label isNull = new Label();
+        mv.visitJumpInsn(Opcodes.IFNULL, isNull);
+        mv.visitIntInsn(Opcodes.BIPUSH, 7);
+        mv.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_BYTE);
+        mv.visitInsn(Opcodes.DUP);
+        mv.visitIntInsn(Opcodes.BIPUSH, 0);
+        mv.visitIntInsn(Opcodes.BIPUSH, 4);
+        mv.visitInsn(Opcodes.BASTORE);
+        mv.visitInsn(Opcodes.DUP);
+        mv.visitIntInsn(Opcodes.BIPUSH, 1);
+        mv.visitIntInsn(Opcodes.BIPUSH, -110);
+        mv.visitInsn(Opcodes.BASTORE);
+        mv.visitInsn(Opcodes.DUP);
+        mv.visitIntInsn(Opcodes.BIPUSH, 2);
+        mv.visitIntInsn(Opcodes.BIPUSH, 3);
+        mv.visitInsn(Opcodes.BASTORE);
+        mv.visitInsn(Opcodes.DUP);
+        mv.visitIntInsn(Opcodes.BIPUSH, 3);
+        mv.visitIntInsn(Opcodes.BIPUSH, 0);
+        mv.visitInsn(Opcodes.BASTORE);
+        mv.visitInsn(Opcodes.DUP);
+        mv.visitIntInsn(Opcodes.BIPUSH, 4);
+        mv.visitIntInsn(Opcodes.BIPUSH, 6);
+        mv.visitInsn(Opcodes.BASTORE);
+        mv.visitInsn(Opcodes.DUP);
+        mv.visitIntInsn(Opcodes.BIPUSH, 5);
+        mv.visitIntInsn(Opcodes.BIPUSH, 2);
+        mv.visitInsn(Opcodes.BASTORE);
+        mv.visitInsn(Opcodes.DUP);
+        mv.visitIntInsn(Opcodes.BIPUSH, 6);
+        mv.visitIntInsn(Opcodes.BIPUSH, 1);
+        mv.visitInsn(Opcodes.BASTORE);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "a/bb", "b", "([B)V");
+        mv.visitLabel(isNull);
+        mv.visitLabel(end);
+        Label finish = new Label();
+        mv.visitJumpInsn(Opcodes.GOTO, finish);
+        mv.visitLabel(handler);
+        mv.visitVarInsn(Opcodes.ASTORE, 0);
+        mv.visitLabel(finish);
+        mv.visitInsn(Opcodes.RETURN);
+        mv.visitMaxs(4, 1);
+        mv.visitEnd();
+
+        cw.visitEnd();
+        return cw.toByteArray();
     }
 
     private static byte[] patchAd(byte[] original) {

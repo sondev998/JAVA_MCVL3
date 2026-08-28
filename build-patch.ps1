@@ -1,15 +1,19 @@
 param(
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $true, Position = 0)]
     [ValidateSet('ghlb', 'tele_leader')]
     [string]$Project,
 
-    [Parameter(Mandatory = $true)]
-    [string[]]$SourceFiles
+    [Parameter(Mandatory = $true, Position = 1, ValueFromRemainingArguments = $true)]
+    [string[]]$SourceFiles,
 
-    , [string]$OutputName = $Project
+    [Parameter(Mandatory = $false)]
+    [string]$OutputName
 )
 
 $ErrorActionPreference = 'Stop'
+if ([string]::IsNullOrWhiteSpace($OutputName)) {
+    $OutputName = $Project
+}
 $root = $PSScriptRoot
 $sourceRoot = Join-Path $root "decomplete\\$Project\\src"
 $resourcesRoot = Join-Path $root "decomplete\\$Project\\resources"
@@ -45,6 +49,11 @@ $resolvedSources = foreach ($file in $SourceFiles) {
 $autoMenuSource = Join-Path $sourceRoot 'a\AutoMenu.java'
 if ((Test-Path -LiteralPath $autoMenuSource) -and ($resolvedSources -notcontains (Resolve-Path -LiteralPath $autoMenuSource).Path)) {
     $resolvedSources = @($resolvedSources) + (Resolve-Path -LiteralPath $autoMenuSource).Path
+}
+
+$mctSource = Join-Path $sourceRoot 'a\MCT.java'
+if ((Test-Path -LiteralPath $mctSource) -and ($resolvedSources -notcontains (Resolve-Path -LiteralPath $mctSource).Path)) {
+    $resolvedSources = @($resolvedSources) + (Resolve-Path -LiteralPath $mctSource).Path
 }
 
 if (Test-Path -LiteralPath $classesRoot) { Remove-Item -LiteralPath $classesRoot -Recurse -Force }
