@@ -17,7 +17,10 @@ $originalJar = Join-Path $root "jar_file\\$Project.jar"
 $outputRoot = Join-Path $root "build_export\\$OutputName"
 $classesRoot = Join-Path $outputRoot 'classes'
 $stagingRoot = Join-Path $outputRoot 'staging'
-$outputJar = Join-Path $outputRoot "$OutputName-patched.jar"
+$jarsOutputDir = Join-Path $root 'jars_output'
+if (!(Test-Path -LiteralPath $jarsOutputDir)) { New-Item -ItemType Directory -Force -Path $jarsOutputDir | Out-Null }
+$timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+$outputJar = Join-Path $jarsOutputDir "$OutputName-patched-$timestamp.jar"
 $supportRoot = Join-Path $root 'build_support'
 
 if (!(Test-Path -LiteralPath $originalJar)) { throw "Missing original JAR: $originalJar" }
@@ -39,7 +42,13 @@ $resolvedSources = foreach ($file in $SourceFiles) {
     $resolved
 }
 
-if (Test-Path -LiteralPath $outputRoot) { Remove-Item -LiteralPath $outputRoot -Recurse -Force }
+$autoMenuSource = Join-Path $sourceRoot 'a\AutoMenu.java'
+if ((Test-Path -LiteralPath $autoMenuSource) -and ($resolvedSources -notcontains (Resolve-Path -LiteralPath $autoMenuSource).Path)) {
+    $resolvedSources = @($resolvedSources) + (Resolve-Path -LiteralPath $autoMenuSource).Path
+}
+
+if (Test-Path -LiteralPath $classesRoot) { Remove-Item -LiteralPath $classesRoot -Recurse -Force }
+if (Test-Path -LiteralPath $stagingRoot) { Remove-Item -LiteralPath $stagingRoot -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $classesRoot, $stagingRoot | Out-Null
 
 $apiJars = Get-ChildItem (Join-Path $root '.tools\j2me') -Filter '*.jar' | ForEach-Object { $_.FullName }
@@ -50,22 +59,40 @@ $classpath = @($originalJar) + $apiJars
 $supportSources = Get-ChildItem $supportRoot -Recurse -Filter '*.java' | ForEach-Object { $_.FullName }
 if ($supportSources) {
     Write-Host "Compiling support source(s): $supportSources"
-& $javac -encoding UTF-8 -source 7 -target 7 -Xlint:-options -cp ($classpath -join ';') -d $classesRoot -sourcepath $classesRoot $supportSources
+    & $javac -encoding UTF-8 -source 7 -target 7 -Xlint:-options -cp ($classpath -join ';') -d $classesRoot -sourcepath $classesRoot $supportSources
     if ($LASTEXITCODE -ne 0) { throw 'Could not compile Java ME compatibility shims.' }
 }
 
 & $javac -encoding UTF-8 -source 7 -target 7 -Xlint:-options -cp (($classpath + $classesRoot) -join ';') -d $classesRoot -sourcepath $classesRoot $resolvedSources
 if ($LASTEXITCODE -ne 0) { throw 'Compilation failed. Fix the selected source file(s), then rerun this command.' }
 
+$tempJar = Join-Path $outputRoot 'unhooked.jar'
 Push-Location $stagingRoot
 try {
     & $jar xf $originalJar
     Get-ChildItem 'META-INF' -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '\.(SF|RSA|DSA)$' } | Remove-Item -Force
     Copy-Item (Join-Path $classesRoot '*') $stagingRoot -Recurse -Force
     if (Test-Path -LiteralPath $resourcesRoot) { Copy-Item (Join-Path $resourcesRoot '*') $stagingRoot -Recurse -Force }
-    & $jar cfm $outputJar 'META-INF\MANIFEST.MF' .
-    if ($LASTEXITCODE -ne 0) { throw 'Could not package the patched JAR.' }
+    & $jar cfm $tempJar 'META-INF\MANIFEST.MF' .
+    if ($LASTEXITCODE -ne 0) { throw 'Could not package the staging JAR.' }
 }
 finally { Pop-Location }
+
+# Inject bytecode hooks for AutoMenu popup (.auto chat & canvas) if AutoMenu is present
+$autoMenuClass = Join-Path $classesRoot 'a\AutoMenu.class'
+$patchAutoPopupClass = Join-Path $root 'build_tools\PatchAutoPopup.class'
+$java = Join-Path (Split-Path $javac) 'java.exe'
+if (!(Test-Path -LiteralPath $java)) {
+    $java = Get-Command java.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source -First 1
+}
+
+if ((Test-Path -LiteralPath $autoMenuClass) -and (Test-Path -LiteralPath $patchAutoPopupClass)) {
+    Write-Host "Injecting AutoMenu bytecode hooks (.auto chat command & canvas overlay)..."
+    & $java -cp (Join-Path $root 'build_tools') PatchAutoPopup $tempJar $outputJar $autoMenuClass
+    if ($LASTEXITCODE -ne 0) { throw 'Could not inject AutoMenu bytecode hooks.' }
+    Remove-Item -LiteralPath $tempJar -Force -ErrorAction SilentlyContinue
+} else {
+    Move-Item -LiteralPath $tempJar -Destination $outputJar -Force
+}
 
 Write-Host "Built: $outputJar"

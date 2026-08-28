@@ -7,6 +7,14 @@ import javax.microedition.lcdui.Graphics;
 public final class AutoMenu {
     public static boolean show = false;
 
+    public static final int SCREEN_MAIN = 0;
+    public static final int SCREEN_FARM = 1;
+    public static int currentScreen = SCREEN_MAIN;
+
+    // Feature toggle states
+    public static boolean autoPlantEnabled = false;
+    public static boolean autoHarvestEnabled = false;
+
     /**
      * Checks if the message sent in-game matches the .auto command.
      * Called when the user clicks the "Gửi" button inside the game.
@@ -14,6 +22,7 @@ public final class AutoMenu {
     public static boolean checkCommand(String input) {
         if (input != null && ".auto".equalsIgnoreCase(input.trim())) {
             show = true;
+            currentScreen = SCREEN_MAIN;
             // Close in-game chat dialogs so the game interface is clearly visible underneath
             try {
                 f.a(21);
@@ -31,6 +40,9 @@ public final class AutoMenu {
 
     public static void setVisible(boolean visible) {
         show = visible;
+        if (visible) {
+            currentScreen = SCREEN_MAIN;
+        }
     }
 
     public static int getScreenWidth() {
@@ -56,11 +68,19 @@ public final class AutoMenu {
     }
 
     public static int getWidth() {
-        return (getScreenWidth() * 80) / 100;
+        int screenW = getScreenWidth();
+        int w = (screenW * 85) / 100;
+        if (w < 180) w = Math.min(180, screenW);
+        if (w > 260) w = 260;
+        return w;
     }
 
     public static int getHeight() {
-        return (getScreenHeight() * 40) / 100;
+        int screenH = getScreenHeight();
+        int h = (screenH * 60) / 100;
+        if (h < 150) h = Math.min(150, screenH);
+        if (h > 220) h = 220;
+        return h;
     }
 
     public static int getX() {
@@ -69,6 +89,17 @@ public final class AutoMenu {
 
     public static int getY() {
         return (getScreenHeight() - getHeight()) / 2;
+    }
+
+    private static void drawButton(Graphics g, Font font, String text, int bx, int by, int bw, int bh, int bgColor, int borderColor, int textColor) {
+        g.setColor(bgColor);
+        g.fillRect(bx, by, bw, bh);
+        g.setColor(borderColor);
+        g.drawRect(bx, by, bw - 1, bh - 1);
+        g.setColor(textColor);
+        int textW = font.stringWidth(text);
+        int textY = by + (bh - font.getHeight()) / 2;
+        g.drawString(text, bx + (bw - textW) / 2, textY, Graphics.TOP | Graphics.LEFT);
     }
 
     public static void paint(Graphics g) {
@@ -104,15 +135,14 @@ public final class AutoMenu {
         g.fillRect(x, y, w, h);
 
         // Header bar
-        int headerH = 20;
-        if (headerH > h / 3) headerH = h / 3;
+        int headerH = 22;
         g.setColor(0x2D2214);
         g.fillRect(x, y, w, headerH);
         g.setColor(0xE5A93C);
         g.drawLine(x, y + headerH, x + w - 1, y + headerH);
 
         // Title text
-        String title = "Menu Auto";
+        String title = currentScreen == SCREEN_FARM ? "Auto N\u00f4ng Tr\u01b0\u1eddng" : "Menu Auto";
         g.setColor(0xFFF799);
         int titleW = font.stringWidth(title);
         int titleY = y + (headerH - font.getHeight()) / 2;
@@ -122,8 +152,8 @@ public final class AutoMenu {
         // [X] Close button
         int closeW = 16;
         int closeH = headerH - 4;
-        if (closeH < 10) closeH = 10;
-        int closeX = x + w - closeW - 2;
+        if (closeH < 12) closeH = 12;
+        int closeX = x + w - closeW - 3;
         int closeY = y + 2;
         g.setColor(0x9E2A2B);
         g.fillRect(closeX, closeY, closeW, closeH);
@@ -133,40 +163,54 @@ public final class AutoMenu {
         int xCharW = font.stringWidth("X");
         g.drawString("X", closeX + (closeW - xCharW) / 2, closeY + (closeH - font.getHeight()) / 2, Graphics.TOP | Graphics.LEFT);
 
-        // Content message
-        String msg = "Ch\u1ee9c n\u0103ng Auto s\u1ebd \u0111\u01b0\u1ee3c th\u00eam t\u1ea1i \u0111\u00e2y.";
-        g.setColor(0xFFFFFF);
+        int contentTop = y + headerH + 8;
+        int btnW = w - 24;
+        int btnH = 22;
+        int btnX = x + 12;
 
-        int fH = font.getHeight();
-        int textY = y + headerH + (h - headerH - 24 - fH) / 2;
-        if (textY < y + headerH + 2) textY = y + headerH + 2;
-        int msgW = font.stringWidth(msg);
-        if (msgW <= w - 8) {
-            g.drawString(msg, x + (w - msgW) / 2, textY, Graphics.TOP | Graphics.LEFT);
-        } else {
-            String line1 = "Ch\u1ee9c n\u0103ng Auto";
-            String line2 = "s\u1ebd \u0111\u01b0\u1ee3c th\u00eam t\u1ea1i \u0111\u00e2y.";
-            int l1W = font.stringWidth(line1);
-            int l2W = font.stringWidth(line2);
-            int startY = y + headerH + (h - headerH - 24 - fH * 2) / 2;
-            if (startY < y + headerH + 2) startY = y + headerH + 2;
-            g.drawString(line1, x + (w - l1W) / 2, startY, Graphics.TOP | Graphics.LEFT);
-            g.drawString(line2, x + (w - l2W) / 2, startY + fH + 1, Graphics.TOP | Graphics.LEFT);
+        if (currentScreen == SCREEN_MAIN) {
+            // Button: Auto Nông Trường
+            int btnFarmY = contentTop + 10;
+            drawButton(g, font, "Auto N\u00f4ng Tr\u01b0\u1eddng", btnX, btnFarmY, btnW, btnH, 0x3B2D1D, 0xE5A93C, 0xFFF799);
+
+            // Bottom [Dong] button
+            int closeBtnW = Math.min(70, w - 30);
+            int closeBtnH = 20;
+            int closeBtnX = x + (w - closeBtnW) / 2;
+            int closeBtnY = y + h - closeBtnH - 6;
+            drawButton(g, font, "\u0110\u00f3ng", closeBtnX, closeBtnY, closeBtnW, closeBtnH, 0x4A3728, 0xE5A93C, 0xFFF799);
+
+        } else if (currentScreen == SCREEN_FARM) {
+            // Button: Tự động trồng cây
+            int btnPlantY = contentTop + 4;
+            String plantText = "T\u1ef1 \u0111\u1ed9ng tr\u1ed3ng c\u00e2y" + (autoPlantEnabled ? " [B\u1eacT]" : " [T\u1eaeT]");
+            int plantBg = autoPlantEnabled ? 0x1E4A28 : 0x3B2D1D;
+            int plantBorder = autoPlantEnabled ? 0x4E9F3D : 0xE5A93C;
+            int plantTextColor = autoPlantEnabled ? 0xD8E9A8 : 0xFFF799;
+            drawButton(g, font, plantText, btnX, btnPlantY, btnW, btnH, plantBg, plantBorder, plantTextColor);
+
+            // Button: Tự động thu hoạch
+            int btnHarvestY = btnPlantY + btnH + 8;
+            String harvestText = "T\u1ef1 \u0111\u1ed9ng thu ho\u1ea1ch" + (autoHarvestEnabled ? " [B\u1eacT]" : " [T\u1eaeT]");
+            int harvestBg = autoHarvestEnabled ? 0x1E4A28 : 0x3B2D1D;
+            int harvestBorder = autoHarvestEnabled ? 0x4E9F3D : 0xE5A93C;
+            int harvestTextColor = autoHarvestEnabled ? 0xD8E9A8 : 0xFFF799;
+            drawButton(g, font, harvestText, btnX, btnHarvestY, btnW, btnH, harvestBg, harvestBorder, harvestTextColor);
+
+            // Bottom [Quay lai] button
+            int backBtnW = Math.min(70, (w - 30) / 2);
+            int backBtnH = 20;
+            int backBtnX = x + 12;
+            int backBtnY = y + h - backBtnH - 6;
+            drawButton(g, font, "Quay l\u1ea1i", backBtnX, backBtnY, backBtnW, backBtnH, 0x3B2D1D, 0xE5A93C, 0xFFF799);
+
+            // Bottom [Dong] button
+            int closeBtnW = Math.min(70, (w - 30) / 2);
+            int closeBtnH = 20;
+            int closeBtnX = x + w - closeBtnW - 12;
+            int closeBtnY = y + h - closeBtnH - 6;
+            drawButton(g, font, "\u0110\u00f3ng", closeBtnX, closeBtnY, closeBtnW, closeBtnH, 0x4A3728, 0xE5A93C, 0xFFF799);
         }
-
-        // Bottom [Dong] button
-        int btnW = Math.min(60, w - 20);
-        int btnH = 18;
-        int btnX = x + (w - btnW) / 2;
-        int btnY = y + h - btnH - 4;
-        g.setColor(0x4A3728);
-        g.fillRect(btnX, btnY, btnW, btnH);
-        g.setColor(0xE5A93C);
-        g.drawRect(btnX, btnY, btnW - 1, btnH - 1);
-        g.setColor(0xFFF799);
-        String btnText = "\u0110\u00f3ng";
-        int btnTextW = font.stringWidth(btnText);
-        g.drawString(btnText, btnX + (btnW - btnTextW) / 2, btnY + (btnH - fH) / 2, Graphics.TOP | Graphics.LEFT);
 
         g.setFont(oldFont);
         g.setClip(clipX, clipY, clipW, clipH);
@@ -185,26 +229,15 @@ public final class AutoMenu {
         int x = getX();
         int y = getY();
 
-        int headerH = 20;
-        if (headerH > h / 3) headerH = h / 3;
+        int headerH = 22;
 
         // [X] button
         int closeW = 16;
         int closeH = headerH - 4;
-        if (closeH < 10) closeH = 10;
-        int closeX = x + w - closeW - 2;
+        if (closeH < 12) closeH = 12;
+        int closeX = x + w - closeW - 3;
         int closeY = y + 2;
         if (px >= closeX - 4 && px <= closeX + closeW + 4 && py >= closeY - 4 && py <= closeY + closeH + 4) {
-            show = false;
-            return true;
-        }
-
-        // [Dong] button
-        int btnW = Math.min(60, w - 20);
-        int btnH = 18;
-        int btnX = x + (w - btnW) / 2;
-        int btnY = y + h - btnH - 4;
-        if (px >= btnX - 4 && px <= btnX + btnW + 4 && py >= btnY - 4 && py <= btnY + btnH + 4) {
             show = false;
             return true;
         }
@@ -215,12 +248,75 @@ public final class AutoMenu {
             return true;
         }
 
+        int contentTop = y + headerH + 8;
+        int btnW = w - 24;
+        int btnH = 22;
+        int btnX = x + 12;
+
+        if (currentScreen == SCREEN_MAIN) {
+            // Click "Auto Nông Trường" button
+            int btnFarmY = contentTop + 10;
+            if (px >= btnX && px <= btnX + btnW && py >= btnFarmY && py <= btnFarmY + btnH) {
+                currentScreen = SCREEN_FARM;
+                return true;
+            }
+
+            // Click [Dong] button
+            int closeBtnW = Math.min(70, w - 30);
+            int closeBtnH = 20;
+            int closeBtnX = x + (w - closeBtnW) / 2;
+            int closeBtnY = y + h - closeBtnH - 6;
+            if (px >= closeBtnX - 2 && px <= closeBtnX + closeBtnW + 2 && py >= closeBtnY - 2 && py <= closeBtnY + closeBtnH + 2) {
+                show = false;
+                return true;
+            }
+
+        } else if (currentScreen == SCREEN_FARM) {
+            // Click "Tự động trồng cây" button
+            int btnPlantY = contentTop + 4;
+            if (px >= btnX && px <= btnX + btnW && py >= btnPlantY && py <= btnPlantY + btnH) {
+                autoPlantEnabled = !autoPlantEnabled;
+                return true;
+            }
+
+            // Click "Tự động thu hoạch" button
+            int btnHarvestY = btnPlantY + btnH + 8;
+            if (px >= btnX && px <= btnX + btnW && py >= btnHarvestY && py <= btnHarvestY + btnH) {
+                autoHarvestEnabled = !autoHarvestEnabled;
+                return true;
+            }
+
+            // Click [Quay lai] button
+            int backBtnW = Math.min(70, (w - 30) / 2);
+            int backBtnH = 20;
+            int backBtnX = x + 12;
+            int backBtnY = y + h - backBtnH - 6;
+            if (px >= backBtnX - 2 && px <= backBtnX + backBtnW + 2 && py >= backBtnY - 2 && py <= backBtnY + backBtnH + 2) {
+                currentScreen = SCREEN_MAIN;
+                return true;
+            }
+
+            // Click [Dong] button
+            int closeBtnW = Math.min(70, (w - 30) / 2);
+            int closeBtnH = 20;
+            int closeBtnX = x + w - closeBtnW - 12;
+            int closeBtnY = y + h - closeBtnH - 6;
+            if (px >= closeBtnX - 2 && px <= closeBtnX + closeBtnW + 2 && py >= closeBtnY - 2 && py <= closeBtnY + closeBtnH + 2) {
+                show = false;
+                return true;
+            }
+        }
+
         return true;
     }
 
     public static boolean keyPressed(int keyCode) {
         if (!show) return false;
-        show = false;
+        if (currentScreen == SCREEN_FARM) {
+            currentScreen = SCREEN_MAIN;
+        } else {
+            show = false;
+        }
         return true;
     }
 }
