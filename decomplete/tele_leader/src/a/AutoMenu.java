@@ -15,7 +15,8 @@ public final class AutoMenu {
     // Feature toggle states
     public static boolean autoPlantEnabled = false;
     public static boolean autoHarvestEnabled = false;
-    public static boolean autoDungeonEnabled = false;
+    public static boolean isAutoPhuBan = false;
+    public static int bossNum = 0;
 
     // 4 Phụ bản thực tế trong mã nguồn game (Cấm địa Tuyệt tình cốc)
     public static final String[] DUNGEON_LIST = {
@@ -50,6 +51,58 @@ public final class AutoMenu {
         try {
             f.a(20);
         } catch (Throwable t) {}
+    }
+
+    /**
+     * Tự động di chuyển nhân vật đến vị trí của Boss trong phụ bản Tuyệt tình cốc.
+     * Boss 0: Tọa độ (11, 16)
+     * Boss 1: Tọa độ (30, 50)
+     * Boss 2: Tọa độ (30, 25)
+     */
+    public static void moveToBoss(int bossIndex) {
+        try {
+            if (bossIndex == 0) {
+                MCT.moveTo(11, 16);
+            } else if (bossIndex == 1) {
+                MCT.moveTo(30, 50);
+            } else if (bossIndex >= 2) {
+                MCT.moveTo(30, 25);
+            }
+            MCT.setAutoFight(true);
+        } catch (Throwable t) {}
+    }
+
+    /**
+     * Nhận event chuỗi text từ server (được tiêm tự động vào a.z method a(I)Ljava/lang/String;).
+     * Phát hiện khi nhận "Giang hồ lệnh bài" để chuyển sang đánh boss tiếp theo.
+     */
+    public static void onServerMessage(String msg) {
+        if (!isAutoPhuBan || msg == null) return;
+
+        boolean hasNhanDuoc = msg.indexOf("nh\u00e2\u0323n \u0111\u01b0\u01a1\u0323c") != -1
+                           || msg.indexOf("nh\u1eadn \u0111\u01b0\u1ee3c") != -1
+                           || msg.startsWith("Ba\u0323n nh\u00e2\u0323n")
+                           || msg.startsWith("B\u1ea1n nh\u1eadn");
+
+        boolean hasLenhBai = msg.indexOf("Giang h\u00f4\u0300 l\u00ea\u0323nh ba\u0300i") != -1
+                          || msg.indexOf("Giang h\u1ed3 l\u1ec7nh b\u00e0i") != -1
+                          || (msg.indexOf("Giang h") != -1 && msg.indexOf("l\u1ec7nh b\u00e0i") != -1)
+                          || (msg.indexOf("Giang h") != -1 && msg.indexOf("ba\u0300i") != -1);
+
+        if (hasNhanDuoc && hasLenhBai) {
+            if (bossNum == 0) {
+                bossNum = 1;
+                moveToBoss(1);
+            } else if (bossNum == 1) {
+                bossNum = 2;
+                moveToBoss(2);
+            } else {
+                bossNum = 0;
+            }
+        } else if (msg.indexOf("N\u01a1i n\u00e0y kh\u00f4ng n\u00ean \u1edf l\u1ea1i l\u00e2u") != -1
+                || msg.indexOf("Ph\u1ea7n th\u01b0\u1edfng qua \u1ea3i") != -1) {
+            bossNum = 0;
+        }
     }
 
     /**
@@ -219,7 +272,11 @@ public final class AutoMenu {
 
             // Button 2: Auto Phụ Bản
             int btnDungeonY = btnFarmY + btnH + 8;
-            drawButton(g, font, "Auto Ph\u1ee5 B\u1ea3n", btnX, btnDungeonY, btnW, btnH, 0x3B2D1D, 0xE5A93C, 0xFFF799);
+            String dBtnText = isAutoPhuBan ? "Auto Ph\u1ee5 B\u1ea3n [B\u1eacT]" : "Auto Ph\u1ee5 B\u1ea3n";
+            int dBtnBg = isAutoPhuBan ? 0x1E4A28 : 0x3B2D1D;
+            int dBtnBorder = isAutoPhuBan ? 0x4E9F3D : 0xE5A93C;
+            int dBtnTextColor = isAutoPhuBan ? 0xD8E9A8 : 0xFFF799;
+            drawButton(g, font, dBtnText, btnX, btnDungeonY, btnW, btnH, dBtnBg, dBtnBorder, dBtnTextColor);
 
             // Bottom [Dong] button
             int closeBtnW = Math.min(70, w - 30);
@@ -280,7 +337,7 @@ public final class AutoMenu {
                     dName = DUNGEON_SHORT_LIST[i];
                 }
 
-                if (isSelected && autoDungeonEnabled) {
+                if (isSelected && isAutoPhuBan) {
                     dName = dName + " *";
                 }
 
@@ -293,10 +350,10 @@ public final class AutoMenu {
             int actBtnW = (w - 26) / 2;
 
             int startBtnX = x + 9;
-            String startText = autoDungeonEnabled ? "STOP" : "START";
-            int startBg = autoDungeonEnabled ? 0x7A1A1A : 0x1E4A28;
-            int startBorder = autoDungeonEnabled ? 0xFF4D4D : 0x4E9F3D;
-            int startTextColor = autoDungeonEnabled ? 0xFFFFFF : 0xD8E9A8;
+            String startText = isAutoPhuBan ? "STOP" : "START";
+            int startBg = isAutoPhuBan ? 0x8B0000 : 0x1E4A28;
+            int startBorder = isAutoPhuBan ? 0xFF4D4D : 0x4E9F3D;
+            int startTextColor = isAutoPhuBan ? 0xFFFFFF : 0xD8E9A8;
             drawButton(g, font, startText, startBtnX, actBtnY, actBtnW, actBtnH, startBg, startBorder, startTextColor);
 
             int teleBtnX = startBtnX + actBtnW + 8;
@@ -441,7 +498,17 @@ public final class AutoMenu {
             int startBtnX = x + 9;
             // Click [START / STOP]
             if (px >= startBtnX - 2 && px <= startBtnX + actBtnW + 2 && py >= actBtnY - 2 && py <= actBtnY + actBtnH + 2) {
-                autoDungeonEnabled = !autoDungeonEnabled;
+                if (!isAutoPhuBan) {
+                    isAutoPhuBan = true;
+                    bossNum = 0;
+                    moveToBoss(0);
+                } else {
+                    isAutoPhuBan = false;
+                    bossNum = 0;
+                    try {
+                        MCT.setAutoFight(false);
+                    } catch (Throwable t) {}
+                }
                 return true;
             }
 

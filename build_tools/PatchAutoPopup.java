@@ -21,6 +21,7 @@ public final class PatchAutoPopup {
     private static boolean injectedAcPointerReleased;
     private static boolean injectedAcPointerPressed;
     private static boolean injectedAcKeyPressed;
+    private static boolean injectedZ;
 
     public static void main(String[] args) throws Exception {
         if (args.length < 3) {
@@ -53,6 +54,9 @@ public final class PatchAutoPopup {
                     } else if ("a/ac.class".equals(name)) {
                         byte[] original = readAll(data);
                         target.write(patchAc(original));
+                    } else if ("a/z.class".equals(name)) {
+                        byte[] original = readAll(data);
+                        target.write(patchZ(original));
                     } else {
                         copy(data, target);
                     }
@@ -96,7 +100,8 @@ public final class PatchAutoPopup {
         System.out.println(" - a/ac.class pointerReleased injected: " + injectedAcPointerReleased);
         System.out.println(" - a/ac.class pointerPressed injected: " + injectedAcPointerPressed);
         System.out.println(" - a/ac.class keyPressed injected: " + injectedAcKeyPressed);
-        System.out.println(" - a/MCT.class teleport bytecode generated and injected.");
+        System.out.println(" - a/z.class server message hook injected: " + injectedZ);
+        System.out.println(" - a/MCT.class bytecode generated and injected.");
     }
 
     private static byte[] generateMCTClass() {
@@ -112,62 +117,152 @@ public final class PatchAutoPopup {
         init.visitMaxs(1, 1);
         init.visitEnd();
 
-        // public static void tele()
-        MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "tele", "()V", null, null);
-        mv.visitCode();
-        Label start = new Label();
-        Label end = new Label();
-        Label handler = new Label();
-        mv.visitTryCatchBlock(start, end, handler, "java/lang/Throwable");
-        mv.visitLabel(start);
-        mv.visitFieldInsn(Opcodes.GETSTATIC, "a/u", "a", "La/bb;");
-        mv.visitInsn(Opcodes.DUP);
-        Label isNull = new Label();
-        mv.visitJumpInsn(Opcodes.IFNULL, isNull);
-        mv.visitIntInsn(Opcodes.BIPUSH, 7);
-        mv.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_BYTE);
-        mv.visitInsn(Opcodes.DUP);
-        mv.visitIntInsn(Opcodes.BIPUSH, 0);
-        mv.visitIntInsn(Opcodes.BIPUSH, 4);
-        mv.visitInsn(Opcodes.BASTORE);
-        mv.visitInsn(Opcodes.DUP);
-        mv.visitIntInsn(Opcodes.BIPUSH, 1);
-        mv.visitIntInsn(Opcodes.BIPUSH, -110);
-        mv.visitInsn(Opcodes.BASTORE);
-        mv.visitInsn(Opcodes.DUP);
-        mv.visitIntInsn(Opcodes.BIPUSH, 2);
-        mv.visitIntInsn(Opcodes.BIPUSH, 3);
-        mv.visitInsn(Opcodes.BASTORE);
-        mv.visitInsn(Opcodes.DUP);
-        mv.visitIntInsn(Opcodes.BIPUSH, 3);
-        mv.visitIntInsn(Opcodes.BIPUSH, 0);
-        mv.visitInsn(Opcodes.BASTORE);
-        mv.visitInsn(Opcodes.DUP);
-        mv.visitIntInsn(Opcodes.BIPUSH, 4);
-        mv.visitIntInsn(Opcodes.BIPUSH, 6);
-        mv.visitInsn(Opcodes.BASTORE);
-        mv.visitInsn(Opcodes.DUP);
-        mv.visitIntInsn(Opcodes.BIPUSH, 5);
-        mv.visitIntInsn(Opcodes.BIPUSH, 2);
-        mv.visitInsn(Opcodes.BASTORE);
-        mv.visitInsn(Opcodes.DUP);
-        mv.visitIntInsn(Opcodes.BIPUSH, 6);
-        mv.visitIntInsn(Opcodes.BIPUSH, 1);
-        mv.visitInsn(Opcodes.BASTORE);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "a/bb", "b", "([B)V");
-        mv.visitLabel(isNull);
-        mv.visitLabel(end);
-        Label finish = new Label();
-        mv.visitJumpInsn(Opcodes.GOTO, finish);
-        mv.visitLabel(handler);
-        mv.visitVarInsn(Opcodes.ASTORE, 0);
-        mv.visitLabel(finish);
-        mv.visitInsn(Opcodes.RETURN);
-        mv.visitMaxs(4, 1);
-        mv.visitEnd();
+        // 1. public static void tele()
+        MethodVisitor mvTele = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "tele", "()V", null, null);
+        mvTele.visitCode();
+        Label tStart = new Label();
+        Label tEnd = new Label();
+        Label tHandler = new Label();
+        mvTele.visitTryCatchBlock(tStart, tEnd, tHandler, "java/lang/Throwable");
+        mvTele.visitLabel(tStart);
+        mvTele.visitFieldInsn(Opcodes.GETSTATIC, "a/u", "a", "La/bb;");
+        mvTele.visitInsn(Opcodes.DUP);
+        Label isNullTele = new Label();
+        mvTele.visitJumpInsn(Opcodes.IFNULL, isNullTele);
+        mvTele.visitIntInsn(Opcodes.BIPUSH, 7);
+        mvTele.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_BYTE);
+        mvTele.visitInsn(Opcodes.DUP);
+        mvTele.visitIntInsn(Opcodes.BIPUSH, 0);
+        mvTele.visitIntInsn(Opcodes.BIPUSH, 4);
+        mvTele.visitInsn(Opcodes.BASTORE);
+        mvTele.visitInsn(Opcodes.DUP);
+        mvTele.visitIntInsn(Opcodes.BIPUSH, 1);
+        mvTele.visitIntInsn(Opcodes.BIPUSH, -110);
+        mvTele.visitInsn(Opcodes.BASTORE);
+        mvTele.visitInsn(Opcodes.DUP);
+        mvTele.visitIntInsn(Opcodes.BIPUSH, 2);
+        mvTele.visitIntInsn(Opcodes.BIPUSH, 3);
+        mvTele.visitInsn(Opcodes.BASTORE);
+        mvTele.visitInsn(Opcodes.DUP);
+        mvTele.visitIntInsn(Opcodes.BIPUSH, 3);
+        mvTele.visitIntInsn(Opcodes.BIPUSH, 0);
+        mvTele.visitInsn(Opcodes.BASTORE);
+        mvTele.visitInsn(Opcodes.DUP);
+        mvTele.visitIntInsn(Opcodes.BIPUSH, 4);
+        mvTele.visitIntInsn(Opcodes.BIPUSH, 6);
+        mvTele.visitInsn(Opcodes.BASTORE);
+        mvTele.visitInsn(Opcodes.DUP);
+        mvTele.visitIntInsn(Opcodes.BIPUSH, 5);
+        mvTele.visitIntInsn(Opcodes.BIPUSH, 2);
+        mvTele.visitInsn(Opcodes.BASTORE);
+        mvTele.visitInsn(Opcodes.DUP);
+        mvTele.visitIntInsn(Opcodes.BIPUSH, 6);
+        mvTele.visitIntInsn(Opcodes.BIPUSH, 1);
+        mvTele.visitInsn(Opcodes.BASTORE);
+        mvTele.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "a/bb", "b", "([B)V");
+        Label endTeleCall = new Label();
+        mvTele.visitJumpInsn(Opcodes.GOTO, endTeleCall);
+        mvTele.visitLabel(isNullTele);
+        mvTele.visitInsn(Opcodes.POP);
+        mvTele.visitLabel(endTeleCall);
+        mvTele.visitLabel(tEnd);
+        Label tFinish = new Label();
+        mvTele.visitJumpInsn(Opcodes.GOTO, tFinish);
+        mvTele.visitLabel(tHandler);
+        mvTele.visitVarInsn(Opcodes.ASTORE, 0);
+        mvTele.visitLabel(tFinish);
+        mvTele.visitInsn(Opcodes.RETURN);
+        mvTele.visitMaxs(4, 1);
+        mvTele.visitEnd();
+
+        // 2. public static void moveTo(int x, int y)
+        MethodVisitor mvMove = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "moveTo", "(II)V", null, null);
+        mvMove.visitCode();
+        Label mStart = new Label();
+        Label mEnd = new Label();
+        Label mHandler = new Label();
+        mvMove.visitTryCatchBlock(mStart, mEnd, mHandler, "java/lang/Throwable");
+        mvMove.visitLabel(mStart);
+        mvMove.visitFieldInsn(Opcodes.GETSTATIC, "a/ay", "a", "La/bl;");
+        mvMove.visitInsn(Opcodes.DUP);
+        Label isNullMove = new Label();
+        mvMove.visitJumpInsn(Opcodes.IFNULL, isNullMove);
+        mvMove.visitVarInsn(Opcodes.ILOAD, 0); // x
+        mvMove.visitVarInsn(Opcodes.ILOAD, 1); // y
+        mvMove.visitInsn(Opcodes.ICONST_1);    // true
+        mvMove.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "a/bl", "a", "(IIZ)V");
+        Label endMoveCall = new Label();
+        mvMove.visitJumpInsn(Opcodes.GOTO, endMoveCall);
+        mvMove.visitLabel(isNullMove);
+        mvMove.visitInsn(Opcodes.POP);
+        mvMove.visitLabel(endMoveCall);
+        mvMove.visitLabel(mEnd);
+        Label mFinish = new Label();
+        mvMove.visitJumpInsn(Opcodes.GOTO, mFinish);
+        mvMove.visitLabel(mHandler);
+        mvMove.visitVarInsn(Opcodes.ASTORE, 2);
+        mvMove.visitLabel(mFinish);
+        mvMove.visitInsn(Opcodes.RETURN);
+        mvMove.visitMaxs(4, 3);
+        mvMove.visitEnd();
+
+        // 3. public static void setAutoFight(boolean enable)
+        MethodVisitor mvFight = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "setAutoFight", "(Z)V", null, null);
+        mvFight.visitCode();
+        Label fStart = new Label();
+        Label fEnd = new Label();
+        Label fHandler = new Label();
+        mvFight.visitTryCatchBlock(fStart, fEnd, fHandler, "java/lang/Throwable");
+        mvFight.visitLabel(fStart);
+        mvFight.visitMethodInsn(Opcodes.INVOKESTATIC, "a/ap", "a", "()La/ap;");
+        mvFight.visitInsn(Opcodes.DUP);
+        Label isNullFight = new Label();
+        mvFight.visitJumpInsn(Opcodes.IFNULL, isNullFight);
+        mvFight.visitVarInsn(Opcodes.ILOAD, 0); // enable
+        mvFight.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "a/ap", "c", "(Z)V");
+        Label endFightCall = new Label();
+        mvFight.visitJumpInsn(Opcodes.GOTO, endFightCall);
+        mvFight.visitLabel(isNullFight);
+        mvFight.visitInsn(Opcodes.POP);
+        mvFight.visitLabel(endFightCall);
+        mvFight.visitLabel(fEnd);
+        Label fFinish = new Label();
+        mvFight.visitJumpInsn(Opcodes.GOTO, fFinish);
+        mvFight.visitLabel(fHandler);
+        mvFight.visitVarInsn(Opcodes.ASTORE, 1);
+        mvFight.visitLabel(fFinish);
+        mvFight.visitInsn(Opcodes.RETURN);
+        mvFight.visitMaxs(3, 2);
+        mvFight.visitEnd();
 
         cw.visitEnd();
         return cw.toByteArray();
+    }
+
+    private static byte[] patchZ(byte[] original) {
+        ClassReader reader = new ClassReader(original);
+        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+        reader.accept(new ClassAdapter(writer) {
+            public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                MethodVisitor visitor = super.visitMethod(access, name, descriptor, signature, exceptions);
+
+                // Patch: public String a(int) -> descriptor "(I)Ljava/lang/String;"
+                if ("a".equals(name) && "(I)Ljava/lang/String;".equals(descriptor)) {
+                    return new MethodAdapter(visitor) {
+                        public void visitInsn(int opcode) {
+                            if (opcode == Opcodes.ARETURN) {
+                                super.visitInsn(Opcodes.DUP);
+                                super.visitMethodInsn(Opcodes.INVOKESTATIC, "a/AutoMenu", "onServerMessage", "(Ljava/lang/String;)V");
+                                injectedZ = true;
+                            }
+                            super.visitInsn(opcode);
+                        }
+                    };
+                }
+                return visitor;
+            }
+        }, 0);
+        return writer.toByteArray();
     }
 
     private static byte[] patchAd(byte[] original) {
