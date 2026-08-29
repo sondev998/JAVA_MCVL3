@@ -50,7 +50,15 @@ public final class PatchAutoPopup {
                 InputStream data = source.getInputStream(entry);
                 try {
                     if ("a/ad.class".equals(name)) {
-                        byte[] original = readAll(data);
+                        File gameGocAd = new File("decomplete/game_goc_raw/a/ad.class");
+                        byte[] original;
+                        if (gameGocAd.exists()) {
+                            FileInputStream fis = new FileInputStream(gameGocAd);
+                            original = readAll(fis);
+                            fis.close();
+                        } else {
+                            original = readAll(data);
+                        }
                         target.write(patchAd(original));
                     } else if ("a/ac.class".equals(name)) {
                         byte[] original = readAll(data);
@@ -119,62 +127,11 @@ public final class PatchAutoPopup {
         init.visitMaxs(1, 1);
         init.visitEnd();
 
-        // 1. public static void tele()
+        // 1. public static void tele() - No-op safe stub (prevents sending invalid team leader packet)
         MethodVisitor mvTele = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "tele", "()V", null, null);
         mvTele.visitCode();
-        Label tStart = new Label();
-        Label tEnd = new Label();
-        Label tHandler = new Label();
-        mvTele.visitTryCatchBlock(tStart, tEnd, tHandler, "java/lang/Throwable");
-        mvTele.visitLabel(tStart);
-        mvTele.visitFieldInsn(Opcodes.GETSTATIC, "a/u", "a", "La/bb;");
-        mvTele.visitInsn(Opcodes.DUP);
-        Label isNullTele = new Label();
-        mvTele.visitJumpInsn(Opcodes.IFNULL, isNullTele);
-        mvTele.visitIntInsn(Opcodes.BIPUSH, 7);
-        mvTele.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_BYTE);
-        mvTele.visitInsn(Opcodes.DUP);
-        mvTele.visitIntInsn(Opcodes.BIPUSH, 0);
-        mvTele.visitIntInsn(Opcodes.BIPUSH, 4);
-        mvTele.visitInsn(Opcodes.BASTORE);
-        mvTele.visitInsn(Opcodes.DUP);
-        mvTele.visitIntInsn(Opcodes.BIPUSH, 1);
-        mvTele.visitIntInsn(Opcodes.BIPUSH, -110);
-        mvTele.visitInsn(Opcodes.BASTORE);
-        mvTele.visitInsn(Opcodes.DUP);
-        mvTele.visitIntInsn(Opcodes.BIPUSH, 2);
-        mvTele.visitIntInsn(Opcodes.BIPUSH, 3);
-        mvTele.visitInsn(Opcodes.BASTORE);
-        mvTele.visitInsn(Opcodes.DUP);
-        mvTele.visitIntInsn(Opcodes.BIPUSH, 3);
-        mvTele.visitIntInsn(Opcodes.BIPUSH, 0);
-        mvTele.visitInsn(Opcodes.BASTORE);
-        mvTele.visitInsn(Opcodes.DUP);
-        mvTele.visitIntInsn(Opcodes.BIPUSH, 4);
-        mvTele.visitIntInsn(Opcodes.BIPUSH, 6);
-        mvTele.visitInsn(Opcodes.BASTORE);
-        mvTele.visitInsn(Opcodes.DUP);
-        mvTele.visitIntInsn(Opcodes.BIPUSH, 5);
-        mvTele.visitIntInsn(Opcodes.BIPUSH, 2);
-        mvTele.visitInsn(Opcodes.BASTORE);
-        mvTele.visitInsn(Opcodes.DUP);
-        mvTele.visitIntInsn(Opcodes.BIPUSH, 6);
-        mvTele.visitIntInsn(Opcodes.BIPUSH, 1);
-        mvTele.visitInsn(Opcodes.BASTORE);
-        mvTele.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "a/bb", "b", "([B)V");
-        Label endTeleCall = new Label();
-        mvTele.visitJumpInsn(Opcodes.GOTO, endTeleCall);
-        mvTele.visitLabel(isNullTele);
-        mvTele.visitInsn(Opcodes.POP);
-        mvTele.visitLabel(endTeleCall);
-        mvTele.visitLabel(tEnd);
-        Label tFinish = new Label();
-        mvTele.visitJumpInsn(Opcodes.GOTO, tFinish);
-        mvTele.visitLabel(tHandler);
-        mvTele.visitVarInsn(Opcodes.ASTORE, 0);
-        mvTele.visitLabel(tFinish);
         mvTele.visitInsn(Opcodes.RETURN);
-        mvTele.visitMaxs(4, 1);
+        mvTele.visitMaxs(0, 0);
         mvTele.visitEnd();
 
         // 2. public static void moveTo(int x, int y)
@@ -562,8 +519,34 @@ public final class PatchAutoPopup {
         mvDrop.visitLabel(d3);
         mvDrop.visitVarInsn(Opcodes.ASTORE, 2);
         mvDrop.visitInsn(Opcodes.RETURN);
-        mvDrop.visitMaxs(5, 3);
-        mvDrop.visitEnd();
+        // 20. public static void openDungeonMenu()
+        MethodVisitor mvOdm = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "openDungeonMenu", "()V", null, null);
+        mvOdm.visitCode();
+        Label odmStart = new Label();
+        Label odmEnd = new Label();
+        Label odmHandler = new Label();
+        mvOdm.visitTryCatchBlock(odmStart, odmEnd, odmHandler, "java/lang/Throwable");
+        mvOdm.visitLabel(odmStart);
+
+        // ap.a().a(1) -> opens game menu cleanly
+        mvOdm.visitMethodInsn(Opcodes.INVOKESTATIC, "a/ap", "a", "()La/ap;");
+        mvOdm.visitInsn(Opcodes.DUP);
+        Label isNullAp = new Label();
+        mvOdm.visitJumpInsn(Opcodes.IFNULL, isNullAp);
+        mvOdm.visitInsn(Opcodes.ICONST_1);
+        mvOdm.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "a/ap", "a", "(I)V");
+        Label endOdm = new Label();
+        mvOdm.visitJumpInsn(Opcodes.GOTO, endOdm);
+        mvOdm.visitLabel(isNullAp);
+        mvOdm.visitInsn(Opcodes.POP);
+        mvOdm.visitLabel(endOdm);
+        mvOdm.visitLabel(odmEnd);
+        mvOdm.visitInsn(Opcodes.RETURN);
+        mvOdm.visitLabel(odmHandler);
+        mvOdm.visitVarInsn(Opcodes.ASTORE, 0);
+        mvOdm.visitInsn(Opcodes.RETURN);
+        mvOdm.visitMaxs(2, 1);
+        mvOdm.visitEnd();
 
         cw.visitEnd();
         return cw.toByteArray();

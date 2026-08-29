@@ -22,4 +22,5 @@ public class MCT {
     public static int getItemId(Object obj) { return 0; }
     public static int getItemCount(Object obj) { return 0; }
     public static void dropItem(int itemId, int count) {}
+    public static void openDungeonMenu() {}
 }

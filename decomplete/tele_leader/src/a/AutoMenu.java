@@ -17,6 +17,7 @@ public final class AutoMenu {
     public static final int SCREEN_FARM = 1;
     public static final int SCREEN_DUNGEON = 2;
     public static final int SCREEN_TRASH = 3;
+    public static final int SCREEN_TRAIN = 4;
     public static int currentScreen = SCREEN_MAIN;
 
     public static final String[] TRASH_OPTIONS = {
@@ -29,11 +30,37 @@ public final class AutoMenu {
         "7. V\u1ee9t b\u1ea1ch d\u01b0\u1ee3c"
     };
 
+    // Auto Train settings (mặc định TẤT CẢ là TẮT)
+    public static boolean trainAutoPickStone = false; // 1. Tự động nhặt đá
+    public static boolean trainDropDay = false;        // 2. Vứt đay
+    public static boolean trainDropTo = false;         // 3. Vứt tơ
+    public static boolean trainDropDaSong = false;     // 4. Vứt da sống
+    public static boolean trainDropDaNhe = false;      // 5. Vứt da nhẹ
+    public static boolean trainDropRangRoi = false;    // 6. Vứt răng rơi
+    public static boolean trainDropDocNhen = false;    // 7. Vứt độc nhện
+
+    public static final String[] TRAIN_SETTINGS = {
+        "1. T\u1ef1 \u0111\u1ed9ng nh\u1eb7t \u0111\u00e1",
+        "2. V\u1ee9t \u0111ay",
+        "3. V\u1ee9t t\u01a1",
+        "4. V\u1ee9t da s\u1ed1ng",
+        "5. V\u1ee9t da nh\u1eb9",
+        "6. V\u1ee9t r\u0103ng r\u01a1i",
+        "7. V\u1ee9t \u0111\u1ed9c nh\u1ec7n"
+    };
+
+    // Auto Train states & skill configuration
+    public static boolean isAutoTrain = false;
+    public static String trainSkillString = "-5:0,49:0,50:0,51:0,52:0,53:0,54:0,55:0,56:0";
+    public static int[] trainParsedSkills = {-5, 49, 50, 51, 52, 53, 54, 55, 56};
+    public static int trainSkillDelay = 200;
+    private static Thread autoTrainSkillThread;
+
     // Feature toggle states
     public static boolean autoPlantEnabled = false;
     public static boolean autoHarvestEnabled = false;
     public static boolean isAutoPhuBan = false;
-    public static boolean autoFightEnabled = true; // Bật/tắt Auto Đánh độc lập
+    public static boolean autoFightEnabled = false; // Mặc định TẮT Auto Đánh khi mở popup
     public static int bossNum = 0; // 0: Boss 1, 1: Boss 2, 2: Boss 3, 3: Completed / Exit
     public static int dungeonRunCount = 0; // Đếm số lượt đã đi
 
@@ -213,6 +240,111 @@ public final class AutoMenu {
     }
 
     /**
+     * Parse chuỗi cài đặt chiêu đánh riêng cho Auto Train.
+     */
+    public static void parseTrainSkills(String input) {
+        if (input == null || input.trim().length() == 0) {
+            input = "-5:0,49:0,50:0,51:0,52:0,53:0,54:0,55:0,56:0";
+        }
+        try {
+            Vector list = new Vector();
+            int start = 0;
+            for (int i = 0; i <= input.length(); i++) {
+                if (i == input.length() || input.charAt(i) == ',' || input.charAt(i) == ' ' || input.charAt(i) == ';') {
+                    if (i > start) {
+                        String token = input.substring(start, i).trim();
+                        if (token.length() > 0) {
+                            int colonIdx = token.indexOf(':');
+                            if (colonIdx != -1) {
+                                token = token.substring(0, colonIdx).trim();
+                            }
+                            try {
+                                int val = Integer.parseInt(token);
+                                if (val >= 1 && val <= 9) {
+                                    val = 48 + val;
+                                } else if (val == 0) {
+                                    val = 48;
+                                }
+                                list.addElement(new Integer(val));
+                            } catch (Throwable t) {}
+                        }
+                    }
+                    start = i + 1;
+                }
+            }
+            if (list.size() > 0) {
+                trainParsedSkills = new int[list.size()];
+                for (int i = 0; i < list.size(); i++) {
+                    trainParsedSkills[i] = ((Integer) list.elementAt(i)).intValue();
+                }
+                System.out.println("[AutoTrain] Parsed " + trainParsedSkills.length + " train skills successfully.");
+            }
+        } catch (Throwable t) {
+            System.out.println("[AutoTrain] parseTrainSkills error: " + t);
+        }
+    }
+
+    /**
+     * Khởi động vòng lặp tự động xuất chiêu riêng cho Auto Train.
+     */
+    public static void startAutoTrainSkillLoop() {
+        if (!isAutoTrain) return;
+        if (autoTrainSkillThread != null && autoTrainSkillThread.isAlive()) return;
+        autoTrainSkillThread = new Thread(new Runnable() {
+            public void run() {
+                int idx = 0;
+                while (isAutoTrain) {
+                    try {
+                        if (trainParsedSkills != null && trainParsedSkills.length > 0) {
+                            int key = trainParsedSkills[idx % trainParsedSkills.length];
+                            castSkill(key);
+                            idx++;
+                        }
+                        long d = (long) trainSkillDelay;
+                        if (speedMultiplier > 1) {
+                            d = d / speedMultiplier;
+                            if (d < 50L) d = 50L;
+                        }
+                        Thread.sleep(d);
+                    } catch (Throwable t) {}
+                }
+            }
+        });
+        autoTrainSkillThread.start();
+    }
+
+    /**
+     * Mở hộp thoại TextBox nhập/chỉnh sửa chuỗi chiêu đánh riêng cho Auto Train.
+     */
+    public static void openTrainSkillInput() {
+        try {
+            final TextBox tb = new TextBox("Chi\u00eau Train (1-8 ho\u1eb7c -5:0..):", trainSkillString, 500, 0);
+            final Command cmdSave = new Command("L\u01b0u", Command.OK, 1);
+            final Command cmdCancel = new Command("H\u1ee7y", Command.CANCEL, 2);
+            tb.addCommand(cmdSave);
+            tb.addCommand(cmdCancel);
+            tb.setCommandListener(new CommandListener() {
+                public void commandAction(Command c, Displayable d) {
+                    if (c == cmdSave) {
+                        trainSkillString = tb.getString();
+                        parseTrainSkills(trainSkillString);
+                        if (isAutoTrain) {
+                            startAutoTrainSkillLoop();
+                        }
+                        System.out.println("[AutoTrain] Saved train skill sequence: " + trainSkillString);
+                    }
+                    try {
+                        MyMidlet.setDisplayable(ac.a());
+                    } catch (Throwable t) {}
+                }
+            });
+            MyMidlet.setDisplayable(tb);
+        } catch (Throwable t) {
+            System.out.println("[AutoTrain] openTrainSkillInput error: " + t);
+        }
+    }
+
+    /**
      * Hàm điều chỉnh thời gian Thread.sleep() trong vòng lặp game chính (ac.java).
      */
     public static long getModifiedSleep(long originalSleep) {
@@ -338,12 +470,41 @@ public final class AutoMenu {
     }
 
     /**
+     * Ghi log chuỗi text (message) đã được giải mã từ server ra file debug.txt
+     */
+    public static synchronized void logDebug(String text) {
+        if (text == null || text.trim().length() == 0) return;
+        try {
+            java.io.File file = new java.io.File("debug.txt");
+            java.io.FileOutputStream fos = new java.io.FileOutputStream(file, true);
+            java.io.OutputStreamWriter osw = new java.io.OutputStreamWriter(fos, "UTF-8");
+            long now = System.currentTimeMillis();
+            long sec = (now / 1000) % 60;
+            long min = (now / (1000 * 60)) % 60;
+            long hour = (now / (1000 * 60 * 60) + 7) % 24; // GMT+7
+            String timeStr = (hour < 10 ? "0" : "") + hour + ":" + (min < 10 ? "0" : "") + min + ":" + (sec < 10 ? "0" : "") + sec;
+            osw.write("[" + timeStr + "] " + text + "\r\n");
+            osw.flush();
+            osw.close();
+            fos.close();
+        } catch (Throwable t) {
+            try {
+                java.io.FileWriter fw = new java.io.FileWriter("debug.txt", true);
+                fw.write(text + "\r\n");
+                fw.flush();
+                fw.close();
+            } catch (Throwable t2) {}
+        }
+    }
+
+    /**
      * Teleport tức thì đến vị trí của Đội trưởng (Packet 4, -110, 3, 0, 6, 2, 1).
      */
     public static void teleToLeader() {
         System.out.println("[AutoMenu] >>> Teleporting to team leader position...");
+        logDebug("[Action] Clicked Tele To Leader button");
         try {
-            MCT.tele();
+            MCT.sendBytes(new byte[]{4, (byte)-110, 3, 0, 6, 2, 1});
         } catch (Throwable t) {
             System.out.println("[AutoMenu] teleToLeader error: " + t);
         }
@@ -442,23 +603,106 @@ public final class AutoMenu {
     }
 
     /**
-     * Chuyển nhân vật đến ngay map cổng phụ bản Tuyệt tình cốc.
+     * Vòng lặp chạy ngầm cho Auto Train:
+     * Định kỳ quét hành trang để vứt các loại rác đã chọn và tự động nhặt đá.
      */
-    public static void teleToTTC() {
-        System.out.println("[AutoPB] teleToTTC called!");
-        try {
-            MCT.tele();
-        } catch (Throwable t) {
-            System.out.println("[AutoPB] teleToTTC error: " + t);
+    private static Thread autoTrainThread;
+    public static void startAutoTrainLoop() {
+        if (!trainAutoPickStone && !trainDropDay && !trainDropTo && !trainDropDaSong && !trainDropDaNhe && !trainDropRangRoi && !trainDropDocNhen) {
+            return;
+        }
+        if (autoTrainThread != null && autoTrainThread.isAlive()) {
+            return;
+        }
+        autoTrainThread = new Thread(new Runnable() {
+            public void run() {
+                System.out.println("[AutoTrain] Background loop started.");
+                while (trainAutoPickStone || trainDropDay || trainDropTo || trainDropDaSong || trainDropDaNhe || trainDropRangRoi || trainDropDocNhen) {
+                    try {
+                        // 1. Quét hành trang và tự động vứt các loại rác đã bật
+                        cleanTrainTrash();
+
+                        // 2. Tự động nhặt đá nếu bật
+                        if (trainAutoPickStone) {
+                            pickNearbyStones();
+                        }
+
+                        Thread.sleep(1500);
+                    } catch (InterruptedException ie) {
+                        break;
+                    } catch (Throwable t) {
+                        try { Thread.sleep(2000); } catch (Throwable t2) {}
+                    }
+                }
+                System.out.println("[AutoTrain] Background loop stopped.");
+            }
+        });
+        autoTrainThread.start();
+    }
+
+    public static void cleanTrainTrash() {
+        if (!trainDropDay && !trainDropTo && !trainDropDaSong && !trainDropDaNhe && !trainDropRangRoi && !trainDropDocNhen) {
+            return;
         }
         try {
-            f.a(21);
+            Vector bag = MCT.getBagVector();
+            if (bag == null || bag.size() == 0) return;
+
+            for (int i = bag.size() - 1; i >= 0; i--) {
+                Object item = bag.elementAt(i);
+                if (item == null) continue;
+
+                String name = MCT.getItemName(item);
+                if (name == null) name = "";
+                String norm = normalize(name);
+                boolean shouldDrop = false;
+
+                if (trainDropDay && (norm.indexOf("day") != -1 || norm.indexOf("vai day") != -1 || norm.indexOf("co day") != -1)) {
+                    shouldDrop = true;
+                } else if (trainDropTo && (norm.indexOf("to") != -1 || norm.indexOf("to tam") != -1 || norm.indexOf("soi to") != -1)) {
+                    shouldDrop = true;
+                } else if (trainDropDaSong && norm.indexOf("da song") != -1) {
+                    shouldDrop = true;
+                } else if (trainDropDaNhe && norm.indexOf("da nhe") != -1) {
+                    shouldDrop = true;
+                } else if (trainDropRangRoi && (norm.indexOf("rang roi") != -1 || norm.indexOf("rang doi") != -1 || norm.indexOf("rang") != -1)) {
+                    shouldDrop = true;
+                } else if (trainDropDocNhen && (norm.indexOf("doc nhen") != -1 || norm.indexOf("tinh doc") != -1 || norm.indexOf("doc") != -1)) {
+                    shouldDrop = true;
+                }
+
+                if (shouldDrop) {
+                    int itemId = MCT.getItemId(item);
+                    int count = MCT.getItemCount(item);
+                    if (count <= 0) count = 1;
+                    System.out.println("[AutoTrain] Discarding trash: '" + name + "' (id=" + itemId + ", count=" + count + ")");
+                    MCT.dropItem(itemId, count);
+                    Thread.sleep(120);
+                }
+            }
         } catch (Throwable t) {}
+    }
+
+    public static void pickNearbyStones() {
         try {
-            f.a(22);
-        } catch (Throwable t) {}
-        try {
-            f.a(20);
+            Vector list = MCT.getEntityList();
+            if (list != null) {
+                for (int i = list.size() - 1; i >= 0; i--) {
+                    Object obj = list.elementAt(i);
+                    if (obj == null) continue;
+                    String name = MCT.getEntityName(obj);
+                    if (name == null) continue;
+                    String norm = normalize(name);
+                    if (norm.indexOf("da") != -1 || norm.indexOf("khoang") != -1 || norm.indexOf("quang") != -1 || norm.indexOf("thach") != -1) {
+                        int x = MCT.getEntityX(obj);
+                        int y = MCT.getEntityY(obj);
+                        int id = MCT.getEntityId(obj);
+                        MCT.moveTo(x, y);
+                        u.a(0, id, (short)x, (short)y, (short)0);
+                        break;
+                    }
+                }
+            }
         } catch (Throwable t) {}
     }
 
@@ -727,6 +971,9 @@ public final class AutoMenu {
         String norm = normalize(msg);
         System.out.println("[AutoPB-Msg] raw: '" + msg + "' | norm: '" + norm + "' | isAutoPhuBan=" + isAutoPhuBan + " | bossNum=" + bossNum);
 
+        // Ghi lại message đã được giải mã từ server ra file debug.txt
+        logDebug(msg);
+
         // 1. Tự động giải Captcha chống bot nếu xuất hiện (ghlb.jar z.java)
         if (msg.indexOf("Chu\u1ed1i s\u1ed1") != -1 || msg.indexOf("Chuoi so") != -1 || msg.indexOf("ph\u00e9p nh\u00e2n") != -1 || msg.indexOf("ph\u00e9p c\u1ed9ng") != -1) {
             solveCaptcha(msg);
@@ -958,6 +1205,8 @@ public final class AutoMenu {
             title = "C\u1ee5 th\u1ec3 ph\u1ee5 b\u1ea3n";
         } else if (currentScreen == SCREEN_TRASH) {
             title = "V\u1ee9t \u0111\u1ed3 r\u00e1c";
+        } else if (currentScreen == SCREEN_TRAIN) {
+            title = "Auto Train";
         } else {
             title = "Menu Auto";
         }
@@ -987,10 +1236,10 @@ public final class AutoMenu {
         int btnX = x + 9;
 
         if (currentScreen == SCREEN_MAIN) {
-            int gap = 3;
-            int mBtnH = (h - headerH - 35) / 7;
-            if (mBtnH < 16) mBtnH = 16;
-            if (mBtnH > 20) mBtnH = 20;
+            int gap = 2;
+            int mBtnH = (h - headerH - 35) / 8;
+            if (mBtnH < 15) mBtnH = 15;
+            if (mBtnH > 18) mBtnH = 18;
 
             // 1. Auto Nông Trường
             int btnFarmY = contentTop;
@@ -1004,15 +1253,24 @@ public final class AutoMenu {
             int dBtnTextColor = isAutoPhuBan ? 0xD8E9A8 : 0xFFF799;
             drawButton(g, font, dBtnText, btnX, btnDungeonY, btnW, mBtnH, dBtnBg, dBtnBorder, dBtnTextColor);
 
-            // 3. Tele đến vị trí đội trưởng
-            int btnTeleY = btnDungeonY + mBtnH + gap;
+            // 3. Auto Train
+            int btnTrainY = btnDungeonY + mBtnH + gap;
+            boolean trainRunning = (trainAutoPickStone || trainDropDay || trainDropTo || trainDropDaSong || trainDropDaNhe || trainDropRangRoi || trainDropDocNhen);
+            String trainBtnText = trainRunning ? "Auto Train [B\u1eacT]" : "Auto Train";
+            int trainBtnBg = trainRunning ? 0x1E4A28 : 0x3B2D1D;
+            int trainBtnBorder = trainRunning ? 0x4E9F3D : 0xE5A93C;
+            int trainBtnTextColor = trainRunning ? 0xD8E9A8 : 0xFFF799;
+            drawButton(g, font, trainBtnText, btnX, btnTrainY, btnW, mBtnH, trainBtnBg, trainBtnBorder, trainBtnTextColor);
+
+            // 4. Tele đến vị trí đội trưởng
+            int btnTeleY = btnTrainY + mBtnH + gap;
             drawButton(g, font, "Tele \u0111\u1ebfn \u0111\u1ed9i tr\u01b0\u1edfng", btnX, btnTeleY, btnW, mBtnH, 0x1C3144, 0x3F88C5, 0xE0F0FF);
 
-            // 4. Vứt đồ rác
+            // 5. Vứt đồ rác
             int btnTrashY = btnTeleY + mBtnH + gap;
             drawButton(g, font, "V\u1ee9t \u0111\u1ed3 r\u00e1c", btnX, btnTrashY, btnW, mBtnH, 0x4A2828, 0xE5A93C, 0xFFF799);
 
-            // 5. Auto Đánh [BẬT / TẮT]
+            // 6. Auto Đánh [BẬT / TẮT]
             int btnFightY = btnTrashY + mBtnH + gap;
             String fightText = "Auto \u0110\u00e1nh: [" + (autoFightEnabled ? "B\u1eacT" : "T\u1eaeT") + "]";
             int fightBg = autoFightEnabled ? 0x1E4A28 : 0x4A2828;
@@ -1020,7 +1278,7 @@ public final class AutoMenu {
             int fightTextColor = autoFightEnabled ? 0xD8E9A8 : 0xFFD0D0;
             drawButton(g, font, fightText, btnX, btnFightY, btnW, mBtnH, fightBg, fightBorder, fightTextColor);
 
-            // 6. Cài đặt Chiêu đánh (Skill Combo)
+            // 7. Cài đặt Chiêu đánh (Skill Combo)
             int btnSkillY = btnFightY + mBtnH + gap;
             String skillLabel = "Chi\u00eau: [" + skillString + "]";
             if (font.stringWidth(skillLabel) > btnW - 6) {
@@ -1028,7 +1286,7 @@ public final class AutoMenu {
             }
             drawButton(g, font, skillLabel, btnX, btnSkillY, btnW, mBtnH, 0x2A2016, 0xE5A93C, 0xFFF799);
 
-            // 7. Tốc độ Game (Speed Hack)
+            // 8. Tốc độ Game (Speed Hack)
             int btnSpeedY = btnSkillY + mBtnH + gap;
             String speedText = "T\u1ed1c \u0111\u1ed9 Game: " + speedMultiplier + "x";
             int speedBg = speedMultiplier > 1 ? 0x1C3144 : 0x3B2D1D;
@@ -1118,24 +1376,14 @@ public final class AutoMenu {
             }
             drawButton(g, font, skillLabel, btnX, skillBtnY, btnW, itemH, 0x2A2016, 0xE5A93C, 0xFFF799);
 
-            // Row 1: [START / STOP] and [Đến]
+            // Row 1: [START / STOP]
             int actBtnH = 19;
             int actBtnY = y + h - 44;
-            int actBtnW = (w - 26) / 2;
-
-            int startBtnX = x + 9;
             String startText = isAutoPhuBan ? "STOP" : "START";
             int startBg = isAutoPhuBan ? 0x8B0000 : 0x1E4A28;
             int startBorder = isAutoPhuBan ? 0xFF4D4D : 0x4E9F3D;
             int startTextColor = isAutoPhuBan ? 0xFFFFFF : 0xD8E9A8;
-            drawButton(g, font, startText, startBtnX, actBtnY, actBtnW, actBtnH, startBg, startBorder, startTextColor);
-
-            int teleBtnX = startBtnX + actBtnW + 8;
-            String teleText = "\u0110\u1ebfn";
-            int teleBg = 0x1C3144;
-            int teleBorder = 0x3F88C5;
-            int teleTextColor = 0xE0F0FF;
-            drawButton(g, font, teleText, teleBtnX, actBtnY, actBtnW, actBtnH, teleBg, teleBorder, teleTextColor);
+            drawButton(g, font, startText, btnX, actBtnY, btnW, actBtnH, startBg, startBorder, startTextColor);
 
             // Row 2: [Quay lại] and [Đóng]
             int navBtnH = 18;
@@ -1171,6 +1419,72 @@ public final class AutoMenu {
             int closeBtnX = x + w - closeBtnW - 9;
             int closeBtnY = y + h - closeBtnH - 6;
             drawButton(g, font, "\u0110\u00f3ng", closeBtnX, closeBtnY, closeBtnW, closeBtnH, 0x4A3728, 0xE5A93C, 0xFFF799);
+
+        } else if (currentScreen == SCREEN_TRAIN) {
+            int itemH = 15;
+            int itemGap = 2;
+            int listStartY = contentTop + 1;
+
+            // 7 Tùy chọn Nhặt đá & Vứt rác
+            for (int i = 0; i < TRAIN_SETTINGS.length; i++) {
+                int itemY = listStartY + i * (itemH + itemGap);
+                boolean isVal = false;
+                String label = "";
+                if (i == 0) {
+                    isVal = trainAutoPickStone;
+                    label = "1. T\u1ef1 \u0111\u1ed9ng nh\u1eb7t \u0111\u00e1: [" + (isVal ? "B\u1eacT" : "T\u1eaeT") + "]";
+                } else if (i == 1) {
+                    isVal = trainDropDay;
+                    label = "2. V\u1ee9t \u0111ay: [" + (isVal ? "B\u1eacT" : "T\u1eaeT") + "]";
+                } else if (i == 2) {
+                    isVal = trainDropTo;
+                    label = "3. V\u1ee9t t\u01a1: [" + (isVal ? "B\u1eacT" : "T\u1eaeT") + "]";
+                } else if (i == 3) {
+                    isVal = trainDropDaSong;
+                    label = "4. V\u1ee9t da s\u1ed1ng: [" + (isVal ? "B\u1eacT" : "T\u1eaeT") + "]";
+                } else if (i == 4) {
+                    isVal = trainDropDaNhe;
+                    label = "5. V\u1ee9t da nh\u1eb9: [" + (isVal ? "B\u1eacT" : "T\u1eaeT") + "]";
+                } else if (i == 5) {
+                    isVal = trainDropRangRoi;
+                    label = "6. V\u1ee9t r\u0103ng r\u01a1i: [" + (isVal ? "B\u1eacT" : "T\u1eaeT") + "]";
+                } else if (i == 6) {
+                    isVal = trainDropDocNhen;
+                    label = "7. V\u1ee9t \u0111\u1ed9c nh\u1ec7n: [" + (isVal ? "B\u1eacT" : "T\u1eaeT") + "]";
+                }
+                int itemBg = isVal ? 0x1E4A28 : 0x2A2016;
+                int itemBorder = isVal ? 0x4E9F3D : 0x5C462C;
+                int itemTextColor = isVal ? 0xD8E9A8 : 0xFFF799;
+                drawButton(g, font, label, btnX, itemY, btnW, itemH, itemBg, itemBorder, itemTextColor);
+            }
+
+            // Button: Cài đặt Chiêu đánh riêng cho Auto Train
+            int trainSkillY = listStartY + 7 * (itemH + itemGap);
+            String tSkillLabel = "Chi\u00eau Train: [" + trainSkillString + "]";
+            if (font.stringWidth(tSkillLabel) > btnW - 6) {
+                tSkillLabel = "Chi\u00eau Train: [S\u1eeda]";
+            }
+            drawButton(g, font, tSkillLabel, btnX, trainSkillY, btnW, itemH, 0x2A2016, 0xE5A93C, 0xFFF799);
+
+            // Row 1: [START TRAIN / STOP TRAIN]
+            int actBtnH = 19;
+            int actBtnY = y + h - 44;
+            String startText = isAutoTrain ? "STOP TRAIN" : "START TRAIN";
+            int startBg = isAutoTrain ? 0x8B0000 : 0x1E4A28;
+            int startBorder = isAutoTrain ? 0xFF4D4D : 0x4E9F3D;
+            int startTextColor = isAutoTrain ? 0xFFFFFF : 0xD8E9A8;
+            drawButton(g, font, startText, btnX, actBtnY, btnW, actBtnH, startBg, startBorder, startTextColor);
+
+            // Row 2: [Quay lại] and [Đóng]
+            int navBtnH = 18;
+            int navBtnY = y + h - 22;
+            int navBtnW = (w - 26) / 2;
+
+            int backBtnX = x + 9;
+            drawButton(g, font, "Quay l\u1ea1i", backBtnX, navBtnY, navBtnW, navBtnH, 0x3B2D1D, 0xE5A93C, 0xFFF799);
+
+            int closeBtnX = backBtnX + navBtnW + 8;
+            drawButton(g, font, "\u0110\u00f3ng", closeBtnX, navBtnY, navBtnW, navBtnH, 0x4A3728, 0xE5A93C, 0xFFF799);
         }
 
         g.setFont(oldFont);
@@ -1235,10 +1549,10 @@ public final class AutoMenu {
         int btnX = x + 9;
 
         if (currentScreen == SCREEN_MAIN) {
-            int gap = 3;
-            int mBtnH = (h - headerH - 35) / 7;
-            if (mBtnH < 16) mBtnH = 16;
-            if (mBtnH > 20) mBtnH = 20;
+            int gap = 2;
+            int mBtnH = (h - headerH - 35) / 8;
+            if (mBtnH < 15) mBtnH = 15;
+            if (mBtnH > 18) mBtnH = 18;
 
             // 1. Click "Auto Nông Trường"
             int btnFarmY = contentTop;
@@ -1254,8 +1568,15 @@ public final class AutoMenu {
                 return true;
             }
 
-            // 3. Click "Tele đến vị trí đội trưởng"
-            int btnTeleY = btnDungeonY + mBtnH + gap;
+            // 3. Click "Auto Train"
+            int btnTrainY = btnDungeonY + mBtnH + gap;
+            if (px >= btnX && px <= btnX + btnW && py >= btnTrainY && py <= btnTrainY + mBtnH) {
+                currentScreen = SCREEN_TRAIN;
+                return true;
+            }
+
+            // 4. Click "Tele đến vị trí đội trưởng"
+            int btnTeleY = btnTrainY + mBtnH + gap;
             if (px >= btnX && px <= btnX + btnW && py >= btnTeleY && py <= btnTeleY + mBtnH) {
                 System.out.println("[AutoMenu] 'Tele đến đội trưởng' clicked!");
                 teleToLeader();
@@ -1263,14 +1584,14 @@ public final class AutoMenu {
                 return true;
             }
 
-            // 4. Click "Vứt đồ rác"
+            // 5. Click "Vứt đồ rác"
             int btnTrashY = btnTeleY + mBtnH + gap;
             if (px >= btnX && px <= btnX + btnW && py >= btnTrashY && py <= btnTrashY + mBtnH) {
                 currentScreen = SCREEN_TRASH;
                 return true;
             }
 
-            // 5. Click "Auto Đánh [BẬT / TẮT]"
+            // 6. Click "Auto Đánh [BẬT / TẮT]"
             int btnFightY = btnTrashY + mBtnH + gap;
             if (px >= btnX && px <= btnX + btnW && py >= btnFightY && py <= btnFightY + mBtnH) {
                 autoFightEnabled = !autoFightEnabled;
@@ -1283,14 +1604,14 @@ public final class AutoMenu {
                 return true;
             }
 
-            // 6. Click "Cài đặt Chiêu đánh"
+            // 7. Click "Cài đặt Chiêu đánh"
             int btnSkillY = btnFightY + mBtnH + gap;
             if (px >= btnX && px <= btnX + btnW && py >= btnSkillY && py <= btnSkillY + mBtnH) {
                 openSkillInput();
                 return true;
             }
 
-            // 7. Click "Tốc độ Game"
+            // 8. Click "Tốc độ Game"
             int btnSpeedY = btnSkillY + mBtnH + gap;
             if (px >= btnX && px <= btnX + btnW && py >= btnSpeedY && py <= btnSpeedY + mBtnH) {
                 speedIndex = (speedIndex + 1) % SPEED_LEVELS.length;
@@ -1379,14 +1700,10 @@ public final class AutoMenu {
                 return true;
             }
 
-            // Row 1: [START] & [Đến]
+            // Row 1: Click [START / STOP] -> START BẮT ĐẦU TỪ CỔNG PHỤ BẢN VÀ VÀO ẢI THEO CẤP ĐỘ ĐÃ CHỌN
             int actBtnH = 19;
             int actBtnY = y + h - 44;
-            int actBtnW = (w - 26) / 2;
-
-            int startBtnX = x + 9;
-            // Click [START / STOP] -> START BẮT ĐẦU TỪ CỔNG PHỤ BẢN VÀ VÀO ẢI THEO CẤP ĐỘ ĐÃ CHỌN
-            if (px >= startBtnX - 4 && px <= startBtnX + actBtnW + 4 && py >= actBtnY - 4 && py <= actBtnY + actBtnH + 4) {
+            if (px >= btnX - 4 && px <= btnX + btnW + 4 && py >= actBtnY - 4 && py <= actBtnY + actBtnH + 4) {
                 if (!isAutoPhuBan) {
                     isAutoPhuBan = true;
                     bossNum = 0;
@@ -1402,14 +1719,6 @@ public final class AutoMenu {
                         MCT.setAutoFight(false);
                     } catch (Throwable t) {}
                 }
-                return true;
-            }
-
-            int teleBtnX = startBtnX + actBtnW + 8;
-            // Click [Đến]
-            if (px >= teleBtnX - 4 && px <= teleBtnX + actBtnW + 4 && py >= actBtnY - 4 && py <= actBtnY + actBtnH + 4) {
-                System.out.println("[AutoMenu] 'Đến' clicked! Teleporting to TTC...");
-                teleToTTC();
                 return true;
             }
 
@@ -1447,6 +1756,87 @@ public final class AutoMenu {
                 }
             }
 
+            int navBtnH = 18;
+            int navBtnY = y + h - 22;
+            int navBtnW = (w - 26) / 2;
+
+            int backBtnX = x + 9;
+            // Click [Quay lại]
+            if (px >= backBtnX - 4 && px <= backBtnX + navBtnW + 4 && py >= navBtnY - 4 && py <= navBtnY + navBtnH + 4) {
+                currentScreen = SCREEN_MAIN;
+                return true;
+            }
+
+            int closeBtnX = backBtnX + navBtnW + 8;
+            // Click [Đóng]
+            if (px >= closeBtnX - 4 && px <= closeBtnX + navBtnW + 4 && py >= navBtnY - 4 && py <= navBtnY + navBtnH + 4) {
+                show = false;
+                return true;
+            }
+
+        } else if (currentScreen == SCREEN_TRAIN) {
+            int itemH = 15;
+            int itemGap = 2;
+            int listStartY = contentTop + 1;
+
+            // Click 7 train options
+            for (int i = 0; i < TRAIN_SETTINGS.length; i++) {
+                int itemY = listStartY + i * (itemH + itemGap);
+                if (px >= btnX && px <= btnX + btnW && py >= itemY && py <= itemY + itemH) {
+                    if (i == 0) {
+                        trainAutoPickStone = !trainAutoPickStone;
+                        System.out.println("[AutoMenu] trainAutoPickStone: " + trainAutoPickStone);
+                    } else if (i == 1) {
+                        trainDropDay = !trainDropDay;
+                        System.out.println("[AutoMenu] trainDropDay: " + trainDropDay);
+                    } else if (i == 2) {
+                        trainDropTo = !trainDropTo;
+                        System.out.println("[AutoMenu] trainDropTo: " + trainDropTo);
+                    } else if (i == 3) {
+                        trainDropDaSong = !trainDropDaSong;
+                        System.out.println("[AutoMenu] trainDropDaSong: " + trainDropDaSong);
+                    } else if (i == 4) {
+                        trainDropDaNhe = !trainDropDaNhe;
+                        System.out.println("[AutoMenu] trainDropDaNhe: " + trainDropDaNhe);
+                    } else if (i == 5) {
+                        trainDropRangRoi = !trainDropRangRoi;
+                        System.out.println("[AutoMenu] trainDropRangRoi: " + trainDropRangRoi);
+                    } else if (i == 6) {
+                        trainDropDocNhen = !trainDropDocNhen;
+                        System.out.println("[AutoMenu] trainDropDocNhen: " + trainDropDocNhen);
+                    }
+                    if (isAutoTrain) {
+                        startAutoTrainLoop();
+                    }
+                    return true;
+                }
+            }
+
+            // Click ô cài đặt Chiêu đánh riêng cho Auto Train
+            int trainSkillY = listStartY + 7 * (itemH + itemGap);
+            if (px >= btnX && px <= btnX + btnW && py >= trainSkillY && py <= trainSkillY + itemH) {
+                openTrainSkillInput();
+                return true;
+            }
+
+            // Row 1: Click [START TRAIN / STOP TRAIN]
+            int actBtnH = 19;
+            int actBtnY = y + h - 44;
+            if (px >= btnX - 4 && px <= btnX + btnW + 4 && py >= actBtnY - 4 && py <= actBtnY + actBtnH + 4) {
+                if (!isAutoTrain) {
+                    isAutoTrain = true;
+                    System.out.println("[AutoMenu] START TRAIN clicked! isAutoTrain=true");
+                    startAutoTrainLoop();
+                    startAutoTrainSkillLoop();
+                    show = false;
+                } else {
+                    isAutoTrain = false;
+                    System.out.println("[AutoMenu] STOP TRAIN clicked! isAutoTrain=false");
+                }
+                return true;
+            }
+
+            // Row 2: [Quay lại] & [Đóng]
             int navBtnH = 18;
             int navBtnY = y + h - 22;
             int navBtnW = (w - 26) / 2;
