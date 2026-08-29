@@ -21,6 +21,7 @@ public final class PatchAutoPopup {
     private static boolean injectedAcPointerReleased;
     private static boolean injectedAcPointerPressed;
     private static boolean injectedAcKeyPressed;
+    private static boolean injectedAcSleep;
     private static boolean injectedZ;
 
     public static void main(String[] args) throws Exception {
@@ -100,6 +101,7 @@ public final class PatchAutoPopup {
         System.out.println(" - a/ac.class pointerReleased injected: " + injectedAcPointerReleased);
         System.out.println(" - a/ac.class pointerPressed injected: " + injectedAcPointerPressed);
         System.out.println(" - a/ac.class keyPressed injected: " + injectedAcKeyPressed);
+        System.out.println(" - a/ac.class speed sleep wrapped: " + injectedAcSleep);
         System.out.println(" - a/z.class server message hook injected: " + injectedZ);
         System.out.println(" - a/MCT.class bytecode generated and injected.");
     }
@@ -383,6 +385,85 @@ public final class PatchAutoPopup {
         mvTalk.visitMaxs(7, 2);
         mvTalk.visitEnd();
 
+        // 12. public static void sendBytes(byte[] data)
+        MethodVisitor mvSend = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "sendBytes", "([B)V", null, null);
+        mvSend.visitCode();
+        Label sSendStart = new Label();
+        Label sSendEnd = new Label();
+        Label sSendHandler = new Label();
+        mvSend.visitTryCatchBlock(sSendStart, sSendEnd, sSendHandler, "java/lang/Throwable");
+        mvSend.visitLabel(sSendStart);
+        mvSend.visitFieldInsn(Opcodes.GETSTATIC, "a/u", "a", "La/bb;");
+        mvSend.visitInsn(Opcodes.DUP);
+        Label isNullSend = new Label();
+        mvSend.visitJumpInsn(Opcodes.IFNULL, isNullSend);
+        mvSend.visitVarInsn(Opcodes.ALOAD, 0);
+        mvSend.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "a/bb", "b", "([B)V");
+        Label endSendCall = new Label();
+        mvSend.visitJumpInsn(Opcodes.GOTO, endSendCall);
+        mvSend.visitLabel(isNullSend);
+        mvSend.visitInsn(Opcodes.POP);
+        mvSend.visitLabel(endSendCall);
+        mvSend.visitLabel(sSendEnd);
+        Label sSendFinish = new Label();
+        mvSend.visitJumpInsn(Opcodes.GOTO, sSendFinish);
+        mvSend.visitLabel(sSendHandler);
+        mvSend.visitVarInsn(Opcodes.ASTORE, 1);
+        mvSend.visitLabel(sSendFinish);
+        mvSend.visitInsn(Opcodes.RETURN);
+        mvSend.visitMaxs(2, 2);
+        mvSend.visitEnd();
+
+        // 13. public static int getMyX()
+        MethodVisitor mvMyX = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "getMyX", "()I", null, null);
+        mvMyX.visitCode();
+        Label startMyX = new Label();
+        Label endMyX = new Label();
+        Label handlerMyX = new Label();
+        mvMyX.visitTryCatchBlock(startMyX, endMyX, handlerMyX, "java/lang/Throwable");
+        mvMyX.visitLabel(startMyX);
+        mvMyX.visitFieldInsn(Opcodes.GETSTATIC, "a/ay", "a", "La/bl;");
+        Label isNullMyX = new Label();
+        mvMyX.visitJumpInsn(Opcodes.IFNULL, isNullMyX);
+        mvMyX.visitFieldInsn(Opcodes.GETSTATIC, "a/ay", "a", "La/bl;");
+        mvMyX.visitFieldInsn(Opcodes.GETFIELD, "a/y", "q", "B");
+        mvMyX.visitLabel(endMyX);
+        mvMyX.visitInsn(Opcodes.IRETURN);
+        mvMyX.visitLabel(isNullMyX);
+        mvMyX.visitInsn(Opcodes.ICONST_M1);
+        mvMyX.visitInsn(Opcodes.IRETURN);
+        mvMyX.visitLabel(handlerMyX);
+        mvMyX.visitVarInsn(Opcodes.ASTORE, 0);
+        mvMyX.visitInsn(Opcodes.ICONST_M1);
+        mvMyX.visitInsn(Opcodes.IRETURN);
+        mvMyX.visitMaxs(1, 1);
+        mvMyX.visitEnd();
+
+        // 14. public static int getMyY()
+        MethodVisitor mvMyY = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "getMyY", "()I", null, null);
+        mvMyY.visitCode();
+        Label startMyY = new Label();
+        Label endMyY = new Label();
+        Label handlerMyY = new Label();
+        mvMyY.visitTryCatchBlock(startMyY, endMyY, handlerMyY, "java/lang/Throwable");
+        mvMyY.visitLabel(startMyY);
+        mvMyY.visitFieldInsn(Opcodes.GETSTATIC, "a/ay", "a", "La/bl;");
+        Label isNullMyY = new Label();
+        mvMyY.visitJumpInsn(Opcodes.IFNULL, isNullMyY);
+        mvMyY.visitFieldInsn(Opcodes.GETSTATIC, "a/ay", "a", "La/bl;");
+        mvMyY.visitFieldInsn(Opcodes.GETFIELD, "a/y", "r", "B");
+        mvMyY.visitLabel(endMyY);
+        mvMyY.visitInsn(Opcodes.IRETURN);
+        mvMyY.visitLabel(isNullMyY);
+        mvMyY.visitInsn(Opcodes.ICONST_M1);
+        mvMyY.visitInsn(Opcodes.IRETURN);
+        mvMyY.visitLabel(handlerMyY);
+        mvMyY.visitVarInsn(Opcodes.ASTORE, 0);
+        mvMyY.visitInsn(Opcodes.ICONST_M1);
+        mvMyY.visitInsn(Opcodes.IRETURN);
+        mvMyY.visitMaxs(1, 1);
+        mvMyY.visitEnd();
+
         cw.visitEnd();
         return cw.toByteArray();
     }
@@ -595,7 +676,18 @@ public final class PatchAutoPopup {
                     };
                 }
 
-                return visitor;
+                // Patch Thread.sleep in main loop
+                return new MethodAdapter(visitor) {
+                    public void visitMethodInsn(int opcode, String owner, String methodName, String methodDesc) {
+                        if (opcode == Opcodes.INVOKESTATIC && "sleep".equals(methodName) && "(J)V".equals(methodDesc)) {
+                            super.visitMethodInsn(Opcodes.INVOKESTATIC, "a/AutoMenu", "getModifiedSleep", "(J)J");
+                            super.visitMethodInsn(opcode, owner, methodName, methodDesc);
+                            injectedAcSleep = true;
+                            return;
+                        }
+                        super.visitMethodInsn(opcode, owner, methodName, methodDesc);
+                    }
+                };
             }
         }, 0);
         return writer.toByteArray();

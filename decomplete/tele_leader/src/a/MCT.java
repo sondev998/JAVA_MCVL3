@@ -14,4 +14,7 @@ public class MCT {
     public static int getEntityId(Object obj) { return 0; }
     public static String getAfString(Object obj) { return null; }
     public static void talkNpc(int npcId) {}
+    public static void sendBytes(byte[] data) {}
+    public static int getMyX() { return 0; }
+    public static int getMyY() { return 0; }
 }
