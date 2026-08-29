@@ -628,8 +628,7 @@ public final class PatchAutoPopup {
                     return new MethodAdapter(visitor) {
                         public void visitInsn(int opcode) {
                             if (opcode == Opcodes.ARETURN) {
-                                super.visitInsn(Opcodes.DUP);
-                                super.visitMethodInsn(Opcodes.INVOKESTATIC, "a/AutoMenu", "onServerMessage", "(Ljava/lang/String;)V");
+                                super.visitMethodInsn(Opcodes.INVOKESTATIC, "a/AutoMenu", "filterServerMessage", "(Ljava/lang/String;)Ljava/lang/String;");
                                 injectedZ = true;
                             }
                             super.visitInsn(opcode);

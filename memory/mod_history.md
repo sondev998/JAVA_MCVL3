@@ -170,6 +170,7 @@ Tài liệu ghi nhận toàn bộ các thay đổi, tính năng mới, cấu tr�
 | `autoPlantEnabled` | `boolean` | `false` | Tùy chọn Tự động trồng cây khi Auto Nông Trường |
 | `autoHarvestEnabled` | `boolean` | `false` | Tùy chọn Tự động thu hoạch khi Auto Nông Trường |
 | `isAutoPhuBan` | `boolean` | `false` | Bật/tắt chế độ Auto Phụ Bản Tuyệt Tình Cốc |
+| `autoPbDropTrash` | `boolean` | `false` | Tự động vứt 7 loại đồ rác sau mỗi lượt phụ bản trước khi vào lượt mới |
 | `isAutoTrain` | `boolean` | `false` | Bật/tắt chế độ Auto Train Quái |
 | `autoFightEnabled`| `boolean` | `false` | Bật/tắt chế độ Auto Đánh chung |
 | `trainAutoPickStone` | `boolean` | `false` | Bật/tắt tự động nhặt đá / quặng khi train |

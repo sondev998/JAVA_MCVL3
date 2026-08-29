@@ -62,6 +62,7 @@ public final class AutoMenu {
     public static boolean autoPlantEnabled = false;
     public static boolean autoHarvestEnabled = false;
     public static boolean isAutoPhuBan = false;
+    public static boolean autoPbDropTrash = false; // Tự động vứt rác sau mỗi lượt phụ bản (mặc định TẮT)
     public static boolean autoFightEnabled = false; // Mặc định TẮT Auto Đánh khi mở popup
     public static int bossNum = 0; // 0: Boss 1, 1: Boss 2, 2: Boss 3, 3: Completed / Exit
     public static int dungeonRunCount = 0; // Đếm số lượt đã đi
@@ -361,6 +362,9 @@ public final class AutoMenu {
      */
     public static String normalize(String s) {
         if (s == null) return "";
+        try {
+            s = s.toLowerCase();
+        } catch (Throwable t) {}
         StringBuffer sb = new StringBuffer();
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
@@ -369,23 +373,35 @@ public final class AutoMenu {
             }
             if (c == '\u00e0' || c == '\u00e1' || c == '\u1ea3' || c == '\u00e3' || c == '\u1ea1' ||
                 c == '\u0103' || c == '\u1eb1' || c == '\u1eaf' || c == '\u1eb3' || c == '\u1eb5' || c == '\u1eb7' ||
-                c == '\u00e2' || c == '\u1ea7' || c == '\u1ea5' || c == '\u1ea9' || c == '\u1eab' || c == '\u1ead') {
+                c == '\u00e2' || c == '\u1ea7' || c == '\u1ea5' || c == '\u1ea9' || c == '\u1eab' || c == '\u1ead' ||
+                c == '\u00c1' || c == '\u00c0' || c == '\u1ea2' || c == '\u00c3' || c == '\u1ea0' ||
+                c == '\u0102' || c == '\u1eb0' || c == '\u1eae' || c == '\u1eb2' || c == '\u1eb4' || c == '\u1eb6' ||
+                c == '\u00c2' || c == '\u1ea6' || c == '\u1ea4' || c == '\u1ea8' || c == '\u1eaa' || c == '\u1eac') {
                 c = 'a';
             } else if (c == '\u0111' || c == '\u0110') {
                 c = 'd';
             } else if (c == '\u00e8' || c == '\u00e9' || c == '\u1ebb' || c == '\u1ebd' || c == '\u1eb9' ||
-                       c == '\u00ea' || c == '\u1ec1' || c == '\u1ebf' || c == '\u1ec3' || c == '\u1ec5' || c == '\u1ec7') {
+                       c == '\u00ea' || c == '\u1ec1' || c == '\u1ebf' || c == '\u1ec3' || c == '\u1ec5' || c == '\u1ec7' ||
+                       c == '\u00c8' || c == '\u00c9' || c == '\u1eba' || c == '\u1ebc' || c == '\u1eb8' ||
+                       c == '\u00ca' || c == '\u1ec0' || c == '\u1ebe' || c == '\u1ec2' || c == '\u1ec4' || c == '\u1ec6') {
                 c = 'e';
-            } else if (c == '\u00ec' || c == '\u00ed' || c == '\u1ec9' || c == '\u0129' || c == '\u1ecb') {
+            } else if (c == '\u00ec' || c == '\u00ed' || c == '\u1ec9' || c == '\u0129' || c == '\u1ecb' ||
+                       c == '\u00cc' || c == '\u00cd' || c == '\u1ec8' || c == '\u0128' || c == '\u1eca') {
                 c = 'i';
             } else if (c == '\u00f2' || c == '\u00f3' || c == '\u1ecf' || c == '\u00f5' || c == '\u1ecd' ||
                        c == '\u00f4' || c == '\u1ed3' || c == '\u1ed1' || c == '\u1ed5' || c == '\u1ed7' || c == '\u1ed9' ||
-                       c == '\u01a1' || c == '\u1edd' || c == '\u1edb' || c == '\u1edf' || c == '\u1ee1' || c == '\u1ee3') {
+                       c == '\u01a1' || c == '\u1edd' || c == '\u1edb' || c == '\u1edf' || c == '\u1ee1' || c == '\u1ee3' ||
+                       c == '\u00d2' || c == '\u00d3' || c == '\u1ece' || c == '\u00d5' || c == '\u1ecc' ||
+                       c == '\u00d4' || c == '\u1ed2' || c == '\u1ed0' || c == '\u1ed4' || c == '\u1ed6' || c == '\u1ed8' ||
+                       c == '\u01a0' || c == '\u1edc' || c == '\u1eda' || c == '\u1ede' || c == '\u1ee0' || c == '\u1ee2') {
                 c = 'o';
             } else if (c == '\u00f9' || c == '\u00fa' || c == '\u1ee7' || c == '\u0169' || c == '\u1ee5' ||
-                       c == '\u01b0' || c == '\u1eeb' || c == '\u1ee9' || c == '\u1eed' || c == '\u1eef' || c == '\u1ef1') {
+                       c == '\u01b0' || c == '\u1eeb' || c == '\u1ee9' || c == '\u1eed' || c == '\u1eef' || c == '\u1ef1' ||
+                       c == '\u00d9' || c == '\u00da' || c == '\u1ee6' || c == '\u0168' || c == '\u1ee4' ||
+                       c == '\u01af' || c == '\u1eea' || c == '\u1ee8' || c == '\u1eec' || c == '\u1eee' || c == '\u1ef0') {
                 c = 'u';
-            } else if (c == '\u1ef3' || c == '\u00fd' || c == '\u1ef7' || c == '\u1ef9' || c == '\u1ef5') {
+            } else if (c == '\u1ef3' || c == '\u00fd' || c == '\u1ef7' || c == '\u1ef9' || c == '\u1ef5' ||
+                       c == '\u1ef2' || c == '\u00dd' || c == '\u1ef6' || c == '\u1ef8' || c == '\u1ef4') {
                 c = 'y';
             }
             if (c >= '\u0300' && c <= '\u032f') {
@@ -393,7 +409,7 @@ public final class AutoMenu {
             }
             sb.append(c);
         }
-        return sb.toString();
+        return sb.toString().toLowerCase();
     }
 
     /**
@@ -508,8 +524,16 @@ public final class AutoMenu {
         // Bỏ qua tên trang bị / chỉ số / trạng thái / vật phẩm rác load thụ động khi vào game
         if (trimmed.startsWith("+") || norm.equals("tu thai") || norm.equals("trang thai bao ho") ||
             norm.equals("bach chien") || norm.equals("tai sinh") || norm.equals("phan toai") ||
-            norm.indexOf("(chua giam dinh)") != -1 || norm.equals("bach duoc") || norm.equals("giang ho lenh bai") ||
-            norm.equals("khinh sa lap") || norm.indexOf("khoang thach") != -1 || norm.equals("da song") || norm.equals("da nhe")) {
+            norm.indexOf("(chua giam dinh)") != -1 || norm.equals("khinh sa lap") ||
+            norm.indexOf("khoang thach") != -1 || norm.equals("da song") || norm.equals("da nhe")) {
+            return true;
+        }
+
+        // Bỏ qua thông báo online/offline kẻ thù, đại cao thủ, thông báo phát loa "mọi người"
+        if (norm.indexOf("ke thu cua ban") != -1 || norm.indexOf("ke thu") != -1 ||
+            norm.indexOf("online roi") != -1 || norm.indexOf("offline roi") != -1 ||
+            norm.indexOf("xuat hien roi") != -1 || norm.indexOf("dai cao thu") != -1 ||
+            norm.indexOf("moi nguoi") != -1 || norm.equals("he thong") || norm.equals("moi nguoi")) {
             return true;
         }
 
@@ -526,12 +550,15 @@ public final class AutoMenu {
      */
     public static boolean isImportantCmd(int cmd) {
         switch (cmd) {
+            case 1008: // Cập nhật ô dữ liệu vật phẩm trong túi đồ
+            case 1032: // Cập nhật số lượng vật phẩm trong túi đồ
+            case 1060: // Thông báo nhặt / cộng số lượng vật phẩm vào túi đồ
             case 1009: // Túi đồ / Vứt đồ / Dùng đồ / Tách ô
             case 1005: // Đối thoại NPC / Chuyển map / Chọn menu
             case 1074: // Lựa chọn option đối thoại NPC
             case 1004: // Thông báo hệ thống / Popup / Cảnh báo server
             case 1312: // Trang viên / Nông trường / Trồng cây / Thu hoạch
-            case 1146: // Cập nhật thực thể nông trường
+            case 1146: // Cập nhật thực thể nông trường / Quái vật phụ bản
             case 1170: // Teleport đội trưởng / Đội ngũ
             case 1157: // Tấn công mục tiêu / Cast skill
             case 1033: // Lệnh vứt đồ thay thế
@@ -748,6 +775,20 @@ public final class AutoMenu {
     public static void logRecvPacket(int cmd, Vector params) {
         if (params == null) return;
 
+        // Tự động nhận diện diệt xong Boss khi nhận Giang Hồ Lệnh Bài từ CMD 1008:
+        if (cmd == 1008) {
+            for (int i = 0; i < params.size(); i++) {
+                Object pObj = params.elementAt(i);
+                if (pObj instanceof j) {
+                    String normName = normalize(pObj.toString().trim());
+                    if (normName.equals("giang ho lenh bai") || normName.indexOf("lenh bai") != -1) {
+                        onBossLootReceived();
+                        break;
+                    }
+                }
+            }
+        }
+
         // CHỈ ghi log các command quan trọng dùng để mod
         if (!isImportantCmd(cmd)) {
             return;
@@ -831,7 +872,31 @@ public final class AutoMenu {
     }
 
     /**
-     * Vứt các loại vật phẩm rác khỏi hành trang (MCT.getBagVector()) bằng packet 1033.
+     * Kiểm tra xem một vật phẩm có phải thuộc diện bảo vệ (Thú cưỡi, Dây cương, Đồ quý, Trang bị cường hóa, Đá/Khoáng sơ-trung-cao cấp) không.
+     * TUYỆT ĐỐI KHÔNG BAO GIỜ ĐƯỢC VỨT CÁC VẬT PHẨM NÀY.
+     */
+    public static boolean isProtectedItem(String rawName, String norm) {
+        if (rawName == null) return false;
+        String trimmed = rawName.trim();
+        if (trimmed.startsWith("+") || trimmed.indexOf("★") != -1 || trimmed.indexOf("[Khóa]") != -1 || trimmed.indexOf("[Khoa]") != -1) {
+            return true;
+        }
+        if (norm == null) norm = normalize(trimmed);
+        if (norm.indexOf("day cuong") != -1 || norm.indexOf("cuong") != -1 ||
+            norm.indexOf("lac da") != -1 || norm.indexOf("toa ki") != -1 ||
+            norm.indexOf("thu cuoi") != -1 || norm.indexOf("ngua") != -1 ||
+            norm.indexOf("lenh bai") != -1 || norm.indexOf("bi kip") != -1 ||
+            norm.indexOf("bao thach") != -1 || norm.indexOf("tay tuy") != -1 ||
+            norm.indexOf("so cap") != -1 || norm.indexOf("trung cap") != -1 ||
+            norm.indexOf("cao cap") != -1 || norm.indexOf("canh ngan") != -1 ||
+            norm.indexOf("huyen kim") != -1) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Vứt các loại vật phẩm rác khỏi hành trang (MCT.getBagVector()) bằng packet 1009.
      */
     public static void dropTrash(final int type) {
         new Thread(new Runnable() {
@@ -854,7 +919,13 @@ public final class AutoMenu {
                         if (item != null) {
                             String name = MCT.getItemName(item);
                             if (name == null) name = "";
-                            String norm = normalize(name);
+                            String norm = normalize(name.trim());
+
+                            // Lớp 1: Bỏ qua tuyệt đối nếu là Thú cưỡi, Dây cương, Đồ quý, Đá sơ cấp/cao cấp
+                            if (isProtectedItem(name, norm)) {
+                                continue;
+                            }
+
                             int itemId = MCT.getItemId(item);
                             int count = MCT.getItemCount(item);
                             if (count <= 0) count = 1;
@@ -862,26 +933,26 @@ public final class AutoMenu {
                             boolean match = false;
 
                             if (type == 0) {
-                                // 1. Vứt đồ chưa giám định
+                                // 1. Vứt đồ chưa giám định (Chứa cụm từ Chưa giám định)
                                 match = isUnidentified(item);
                             } else if (type == 1) {
-                                // 2. Vứt đay
-                                match = (norm.indexOf("day") != -1 || norm.indexOf("vai day") != -1 || norm.indexOf("co day") != -1 || norm.indexOf("gai") != -1);
+                                // 2. Vứt đay (Khớp chính xác tên: "Đay", "Vải đay", "Cỏ đay")
+                                match = norm.equals("day") || norm.equals("vai day") || norm.equals("co day");
                             } else if (type == 2) {
-                                // 3. Vứt tơ
-                                match = (norm.indexOf("to") != -1 || norm.indexOf("to tam") != -1 || norm.indexOf("soi to") != -1);
+                                // 3. Vứt tơ (Khớp chính xác tên: "Tơ", "Tơ tằm", "Sợi tơ")
+                                match = norm.equals("to") || norm.equals("to tam") || norm.equals("soi to");
                             } else if (type == 3) {
-                                // 4. Vứt da sống
-                                match = (norm.indexOf("da song") != -1 || (norm.indexOf("da") != -1 && norm.indexOf("song") != -1) || norm.indexOf("da tho") != -1 || norm.indexOf("da thu") != -1);
+                                // 4. Vứt da sống (Khớp chính xác tên: "Da sống", "Da thô")
+                                match = norm.equals("da song") || norm.equals("da tho");
                             } else if (type == 4) {
-                                // 5. Vứt da nhẹ
-                                match = (norm.indexOf("da nhe") != -1 || (norm.indexOf("da") != -1 && norm.indexOf("nhe") != -1));
+                                // 5. Vứt da nhẹ (Khớp chính xác tên: "Da nhẹ")
+                                match = norm.equals("da nhe");
                             } else if (type == 5) {
-                                // 6. Vứt khoáng thạch
-                                match = (norm.indexOf("khoang thach") != -1 || norm.indexOf("khoang") != -1 || norm.indexOf("quang") != -1 || norm.indexOf("thach") != -1);
+                                // 6. Vứt khoáng thạch (CHẮC CHẮN phải kết thúc bằng "khoáng thạch" hoặc đúng là "khoáng thạch")
+                                match = (norm.equals("khoang thach") || norm.endsWith(" khoang thach") || norm.endsWith("khoang thach"));
                             } else if (type == 6) {
-                                // 7. Vứt bạch dược
-                                match = (norm.indexOf("bach duoc") != -1 || norm.indexOf("duoc") != -1 || norm.indexOf("thuoc") != -1);
+                                // 7. Vứt bạch dược (Khớp chính xác tên: "Bạch dược")
+                                match = norm.equals("bach duoc");
                             }
 
                             if (match) {
@@ -905,6 +976,93 @@ public final class AutoMenu {
                 }
             }
         }).start();
+    }
+
+    /**
+     * Kiểm tra xem một vật phẩm có phải là 1 trong 7 loại đồ rác không:
+     * (Vứt đồ chưa giám định, Vứt đay, Vứt tơ, Vứt da sống, Vứt da nhẹ, Vứt khoáng thạch, Vứt bạch dược).
+     * Áp dụng so khớp chính xác tên cho Đay, Tơ, Da Sống, Da Nhẹ, Bạch Dược và kết thúc bằng "khoáng thạch".
+     */
+    public static boolean isTrashItem(Object item) {
+        if (item == null) return false;
+
+        String name = MCT.getItemName(item);
+        if (name == null) name = "";
+        String norm = normalize(name.trim());
+
+        // Lớp 1: Bỏ qua tuyệt đối nếu là Thú cưỡi, Dây cương, Đồ quý, Trang bị cường hóa, Đá/Khoáng sơ-cao cấp
+        if (isProtectedItem(name, norm)) {
+            return false;
+        }
+
+        // 1. Đồ chưa giám định (Chứa cụm từ)
+        if (isUnidentified(item)) return true;
+
+        // 2. Đay (Khớp chính xác tên)
+        if (norm.equals("day") || norm.equals("vai day") || norm.equals("co day")) return true;
+
+        // 3. Tơ (Khớp chính xác tên)
+        if (norm.equals("to") || norm.equals("to tam") || norm.equals("soi to")) return true;
+
+        // 4. Da sống (Khớp chính xác tên)
+        if (norm.equals("da song") || norm.equals("da tho")) return true;
+
+        // 5. Da nhẹ (Khớp chính xác tên)
+        if (norm.equals("da nhe")) return true;
+
+        // 6. Khoáng thạch (CHẮC CHẮN phải kết thúc bằng "khoáng thạch" hoặc đúng là "khoáng thạch")
+        if (norm.equals("khoang thach") || norm.endsWith(" khoang thach") || norm.endsWith("khoang thach")) {
+            return true;
+        }
+
+        // 7. Bạch dược (Khớp chính xác tên)
+        if (norm.equals("bach duoc")) return true;
+
+        return false;
+    }
+
+    /**
+     * Tự động vứt toàn bộ 7 loại đồ rác khỏi hành trang (chạy đồng bộ hoặc trong worker thread khi kết thúc 1 lượt phụ bản).
+     */
+    public static void dropAllTrashSync() {
+        try {
+            Vector bag = MCT.getBagVector();
+            if (bag == null || bag.size() == 0) return;
+
+            logDebug("[AutoPB-Trash] Kiem tra hanh trang de tu dong vut rac (Tong so o=" + bag.size() + ")...");
+            System.out.println("[AutoPB-Trash] Checking bag to drop trash items (size=" + bag.size() + ")...");
+            int dropped = 0;
+
+            for (int i = bag.size() - 1; i >= 0; i--) {
+                Object item = bag.elementAt(i);
+                if (item != null && isTrashItem(item)) {
+                    String name = MCT.getItemName(item);
+                    int itemId = MCT.getItemId(item);
+                    int count = MCT.getItemCount(item);
+                    if (count <= 0) count = 1;
+
+                    logDebug("[AutoPB-Trash] -> Vut rac: '" + name + "' (id=" + itemId + ", count=" + count + ")");
+                    System.out.println("[AutoPB-Trash] Dropping '" + name + "' (id=" + itemId + ", count=" + count + ")");
+                    try {
+                        MCT.dropItem(itemId, count);
+                        dropped++;
+                        Thread.sleep(120);
+                    } catch (Throwable t) {
+                        logDebug("[AutoPB-Trash] Drop error: " + t);
+                    }
+                }
+            }
+
+            if (dropped > 0) {
+                logDebug("[AutoPB-Trash] Da vut xong " + dropped + " o vat pham rac. Chuan bi vao luot phu ban tiep theo.");
+                System.out.println("[AutoPB-Trash] Completed dropping " + dropped + " trash items.");
+                Thread.sleep(400);
+            } else {
+                logDebug("[AutoPB-Trash] Hanh trang khong co vat pham rac.");
+            }
+        } catch (Throwable t) {
+            System.out.println("[AutoPB-Trash] Exception: " + t);
+        }
     }
 
     /**
@@ -994,20 +1152,25 @@ public final class AutoMenu {
 
                 String name = MCT.getItemName(item);
                 if (name == null) name = "";
-                String norm = normalize(name);
+                String norm = normalize(name.trim());
+
+                if (isProtectedItem(name, norm)) {
+                    continue;
+                }
+
                 boolean shouldDrop = false;
 
-                if (trainDropDay && (norm.indexOf("day") != -1 || norm.indexOf("vai day") != -1 || norm.indexOf("co day") != -1)) {
+                if (trainDropDay && (norm.equals("day") || norm.equals("vai day") || norm.equals("co day"))) {
                     shouldDrop = true;
-                } else if (trainDropTo && (norm.indexOf("to") != -1 || norm.indexOf("to tam") != -1 || norm.indexOf("soi to") != -1)) {
+                } else if (trainDropTo && (norm.equals("to") || norm.equals("to tam") || norm.equals("soi to"))) {
                     shouldDrop = true;
-                } else if (trainDropDaSong && norm.indexOf("da song") != -1) {
+                } else if (trainDropDaSong && (norm.equals("da song") || norm.equals("da tho"))) {
                     shouldDrop = true;
-                } else if (trainDropDaNhe && norm.indexOf("da nhe") != -1) {
+                } else if (trainDropDaNhe && norm.equals("da nhe")) {
                     shouldDrop = true;
-                } else if (trainDropRangRoi && (norm.indexOf("rang roi") != -1 || norm.indexOf("rang doi") != -1 || norm.indexOf("rang") != -1)) {
+                } else if (trainDropRangRoi && (norm.equals("rang roi") || norm.equals("rang doi"))) {
                     shouldDrop = true;
-                } else if (trainDropDocNhen && (norm.indexOf("doc nhen") != -1 || norm.indexOf("tinh doc") != -1 || norm.indexOf("doc") != -1)) {
+                } else if (trainDropDocNhen && (norm.equals("doc nhen") || norm.equals("tinh doc nhen"))) {
                     shouldDrop = true;
                 }
 
@@ -1046,45 +1209,117 @@ public final class AutoMenu {
         } catch (Throwable t) {}
     }
 
+    private static long lastBossLootTime = 0;
+    private static long lastGateSelectTime = 0;
+    private static long lastGateConfirmTime = 0;
+
+    /**
+     * Kích hoạt ngay khi nhận được Giang Hồ Lệnh Bài từ gói CMD 1008:
+     * Dừng auto đánh, chuyển sang Boss tiếp theo hoặc hoàn tất ải, vứt rác và tái lặp.
+     */
+    public static synchronized void onBossLootReceived() {
+        long now = System.currentTimeMillis();
+        if (now - lastBossLootTime < 3000) return;
+        lastBossLootTime = now;
+
+        logDebug("[AutoPB] >>> Nhan Giang Ho Lenh Bai! Boss " + (bossNum + 1) + " da bi ha guc.");
+        System.out.println("[AutoPB] >>> Boss " + (bossNum + 1) + " KILLED! Advancing progression...");
+
+        // TẮT Auto đánh ngay lập tức
+        try { MCT.setAutoFight(false); } catch (Throwable t) {}
+
+        if (isAutoPhuBan) {
+            if (bossNum == 0) {
+                bossNum = 1;
+                System.out.println("[AutoPB] Moving to Boss 2 (30, 50)...");
+                moveToTarget(1);
+            } else if (bossNum == 1) {
+                bossNum = 2;
+                System.out.println("[AutoPB] Moving to Boss 3 (30, 25)...");
+                moveToTarget(2);
+            } else if (bossNum >= 2) {
+                bossNum = 3;
+                System.out.println("[AutoPB] Killed all 3 bosses! Exiting dungeon...");
+                exitDungeon();
+                new Thread(new Runnable() {
+                    public void run() {
+                        try {
+                            Thread.sleep(2000);
+                            if (isAutoPhuBan) {
+                                if (autoPbDropTrash) {
+                                    dropAllTrashSync();
+                                }
+                                enterDungeonByLevel(selectedDungeon);
+                            }
+                        } catch (Throwable t) {}
+                    }
+                }).start();
+            }
+        } else {
+            // Khi đi phụ bản bằng tay: Nếu bật Tự động vứt rác và đã hạ Boss cuối (hoặc nhận Lệnh bài)
+            if (autoPbDropTrash) {
+                bossNum++;
+                if (bossNum >= 3) {
+                    new Thread(new Runnable() {
+                        public void run() {
+                            try {
+                                Thread.sleep(1500);
+                                dropAllTrashSync();
+                            } catch (Throwable t) {}
+                        }
+                    }).start();
+                }
+            }
+        }
+    }
+
     /**
      * Khởi động Auto vào phụ bản theo chuẩn 100% của ghlb.jar (MoveAuto6):
-     * Chỉ di chuyển tới tọa độ cổng (62, 8). Không gửi spam packet, không retry.
+     * Di chuyển qua điểm đệm (62, 14) rồi tiến tới cổng (62, 8) để kích hoạt popup menu.
      */
     public static void enterDungeonByLevel(final int level) {
-        System.out.println("[AutoPB] >>> Entering TTC dungeon level " + level + " (ghlb logic)...");
+        logDebug("[AutoPB-Enter] enterDungeonByLevel: level=" + level + " (" + DUNGEON_SHORT_LIST[level] + ")");
+        System.out.println("[AutoPB] >>> Entering TTC dungeon level " + level + " (" + DUNGEON_SHORT_LIST[level] + ")...");
         try {
             // TẮT hoàn toàn auto đánh
             MCT.setAutoFight(false);
-
-            // Di chuyển tới đúng vị trí cổng phụ bản (62, 8) như MoveAuto6 trong ghlb.jar
-            MCT.moveTo(62, 8);
-
             bossNum = 0;
             dungeonRunCount++;
-            System.out.println("[AutoPB] >>> Run count: " + dungeonRunCount + ". Moving to (62, 8)...");
 
-            // Lắng nghe khi vào trong map phụ bản -> Bắt đầu đi tìm Boss 1
+            // Đi qua điểm đệm (62, 14) rồi tiến tới cổng (62, 8) chuẩn ghlb.jar
             new Thread(new Runnable() {
                 public void run() {
                     try {
+                        logDebug("[AutoPB-Enter] Step 1: Moving to waypoint (62, 14)...");
+                        MCT.moveTo(62, 14);
+                        Thread.sleep(600);
+                        logDebug("[AutoPB-Enter] Step 2: Stepping into gate (62, 8)...");
+                        MCT.moveTo(62, 8);
+
+                        // Lắng nghe khi vào trong map phụ bản -> Bắt đầu đi tìm Boss 1
                         long startWait = System.currentTimeMillis();
-                        while (isAutoPhuBan && (System.currentTimeMillis() - startWait < 45000)) {
+                        while (isAutoPhuBan && (System.currentTimeMillis() - startWait < 35000)) {
                             Thread.sleep(500);
                             int myX = MCT.getMyX();
                             int myY = MCT.getMyY();
 
-                            // Nhận diện đã vào map phụ bản (tọa độ khác cổng ngoài 62, 8) hoặc thấy Boss 1
+                            // Nhận diện đã vào map phụ bản (tọa độ khác cổng ngoài 62, 8 / 62, 14) hoặc thấy Boss 1
                             boolean isInside = (myX > 0 && myY > 0 && (Math.abs(myX - 62) > 6 || Math.abs(myY - 8) > 6)) || findBoss1() != null;
                             if (isInside) {
-                                System.out.println("[AutoPB] Confirmed inside dungeon! Pos=(" + myX + "," + myY + "). Moving to search Boss 1...");
+                                logDebug("[AutoPB-Enter] Confirmed inside dungeon! Pos=(" + myX + "," + myY + "). Moving to search Boss 1 (11, 16)...");
+                                System.out.println("[AutoPB] Confirmed inside dungeon! Pos=(" + myX + "," + myY + "). Moving to search Boss 1 (11, 16)...");
+                                Thread.sleep(600);
                                 moveToTarget(0);
                                 return;
                             }
                         }
-                    } catch (Throwable t) {}
+                    } catch (Throwable t) {
+                        logDebug("[AutoPB-Enter] Exception in enter thread: " + t);
+                    }
                 }
             }).start();
         } catch (Throwable t) {
+            logDebug("[AutoPB] enterDungeonByLevel error: " + t);
             System.out.println("[AutoPB] enterDungeonByLevel error: " + t);
         }
     }
@@ -1121,8 +1356,12 @@ public final class AutoMenu {
 
     /**
      * Tự động giải Captcha toán chống bot từ server (Logic chuẩn từ ghlb.jar z.java).
+     * TUYỆT ĐỐI CHỈ TỰ ĐỘNG GIẢI KHI ĐANG BẬT AUTO PHỤ BẢN.
      */
     public static void solveCaptcha(String msg) {
+        if (!isAutoPhuBan) {
+            return;
+        }
         try {
             System.out.println("[AutoCaptcha] Processing server captcha: " + msg);
             int idx = msg.indexOf("Chu\u1ed1i s\u1ed1\uff1a");
@@ -1192,15 +1431,14 @@ public final class AutoMenu {
     }
 
     /**
-     * Tự động di chuyển tuần tra khắp map để tìm Boss.
-     * TUYỆT ĐỐI CHỈ BẬT AUTO ĐÁNH KHI ĐÃ TÌM THẤY BOSS VÀ ĐÃ DI CHUYỂN TỚI VỊ TRÍ BOSS.
+     * Tự động di chuyển tới vị trí Boss theo chuẩn ghlb.jar và tự động bật Auto Đánh.
      * Target 0: Boss 1 ("Phàn nhất ông" - MoveAuto1: 11, 16)
-     * Target 1: Boss 2 ("Cầu/Cừu thiên xích" - MoveAuto2: 30, 50 -> MoveAuto3: 50, 40)
-     * Target 2: Boss 3 ("Công tôn chỉ" - MoveAuto4: 30, 25 -> MoveAuto5: 53, 5)
+     * Target 1: Boss 2 ("Cầu/Cừu thiên xích" - MoveAuto2: 30, 50)
+     * Target 2: Boss 3 ("Công tôn chỉ" - MoveAuto4: 30, 25)
      * Target 3: Rời phụ bản (exitDungeon)
      */
     public static void moveToTarget(final int targetIndex) {
-        System.out.println("[AutoPB-Move] moveToTarget: index=" + targetIndex + " (0=Phàn nhất ông, 1=Cầu/Cừu thiên xích, 2=Công tôn chỉ, 3=Rời phụ bản)");
+        System.out.println("[AutoPB-Move] moveToTarget: index=" + targetIndex + " (0=Boss 1, 1=Boss 2, 2=Boss 3, 3=Exit)");
         try {
             // TẮT Auto đánh trong suốt quá trình đi tìm đường
             MCT.setAutoFight(false);
@@ -1210,96 +1448,97 @@ public final class AutoMenu {
                 return;
             }
 
-            // Tuyến đường tuần tra tìm Boss tương ứng trên bản đồ Tuyệt Tình Cốc theo ghlb.jar
-            final int[][] route;
+            final int destX, destY;
             if (targetIndex == 0) {
-                route = new int[][]{{11, 16}, {20, 20}, {15, 30}, {11, 16}};
+                destX = 11; destY = 16;
             } else if (targetIndex == 1) {
-                route = new int[][]{{30, 50}, {50, 40}, {45, 45}, {30, 50}};
+                destX = 30; destY = 50;
             } else {
-                route = new int[][]{{30, 25}, {53, 5}, {25, 15}, {30, 25}};
+                destX = 30; destY = 25;
             }
 
-            // Chạy luồng tuần tra tìm Boss
             new Thread(new Runnable() {
                 public void run() {
                     try {
-                        int routeIdx = 0;
-                        long waypointStartTime = System.currentTimeMillis();
-                        int lastDestX = -1;
-                        int lastDestY = -1;
+                        // Di chuyển tới vị trí Boss
+                        MCT.moveTo(destX, destY);
 
-                        while (isAutoPhuBan) {
-                            // 1. Quét tìm Boss trong viewport thực tế (ay.k)
-                            int[] bossPos = null;
-                            if (targetIndex == 0) bossPos = findBoss1();
-                            else if (targetIndex == 1) bossPos = findBoss2();
-                            else if (targetIndex == 2) bossPos = findBoss3();
-
-                            if (bossPos != null) {
-                                // >>> ĐÃ TÌM THẤY BOSS TRÊN MÀN HÌNH <<<
-                                int bX = bossPos[0];
-                                int bY = bossPos[1];
-                                int myX = MCT.getMyX();
-                                int myY = MCT.getMyY();
-                                int dist = (myX >= 0 && myY >= 0) ? Math.max(Math.abs(myX - bX), Math.abs(myY - bY)) : 999;
-                                System.out.println("[AutoPB-Move] FOUND Boss " + (targetIndex + 1) + " at (" + bX + "," + bY + "), myPos=(" + myX + "," + myY + "), dist=" + dist);
-
-                                // Di chuyển trực tiếp tới vị trí Boss
-                                if (lastDestX != bX || lastDestY != bY) {
-                                    MCT.moveTo(bX, bY);
-                                    lastDestX = bX;
-                                    lastDestY = bY;
-                                }
-
-                                // CHỈ BẬT AUTO ĐÁNH KHI ĐÃ ĐẾN SÁT VỊ TRÍ BOSS (dist <= 2)
-                                if (dist <= 2) {
-                                    isFightingBoss = true;
-                                    if (autoFightEnabled) {
-                                        System.out.println("[AutoPB-Move] >>> REACHED Boss " + (targetIndex + 1) + "! Turning ON Auto Fight...");
-                                        MCT.setAutoFight(true);
-                                        startAutoSkillLoop();
-                                    } else {
-                                        System.out.println("[AutoPB-Move] >>> REACHED Boss " + (targetIndex + 1) + ", but autoFightEnabled is OFF.");
-                                    }
-                                    return; // Đã đến nơi Boss và vào trận, kết thúc luồng tìm kiếm
-                                }
-                            } else {
-                                // >>> CHƯA TÌM THẤY BOSS: TUYỆT ĐỐI KHÔNG BẬT AUTO ĐÁNH <<<
-                                isFightingBoss = false;
-                                MCT.setAutoFight(false);
-
-                                // Di chuyển tuần tra qua các điểm waypoint trên map để mở rộng tầm nhìn
-                                int[] wp = route[routeIdx % route.length];
-                                if (lastDestX != wp[0] || lastDestY != wp[1]) {
-                                    System.out.println("[AutoPB-Move] Boss " + (targetIndex + 1) + " not in sight. Roaming to waypoint (" + wp[0] + "," + wp[1] + ") to search...");
-                                    MCT.moveTo(wp[0], wp[1]);
-                                    lastDestX = wp[0];
-                                    lastDestY = wp[1];
-                                    waypointStartTime = System.currentTimeMillis();
-                                }
-
-                                int myX = MCT.getMyX();
-                                int myY = MCT.getMyY();
-                                int wpDist = (myX >= 0 && myY >= 0) ? Math.max(Math.abs(myX - wp[0]), Math.abs(myY - wp[1])) : 999;
-                                // Nếu đã đến waypoint hiện tại hoặc đã đi quá 4 giây -> chuyển sang waypoint tiếp theo
-                                if (wpDist <= 2 || (System.currentTimeMillis() - waypointStartTime > 4000)) {
-                                    routeIdx++;
-                                    lastDestX = -1;
-                                    lastDestY = -1;
-                                }
+                        long startTime = System.currentTimeMillis();
+                        while (isAutoPhuBan && (System.currentTimeMillis() - startTime < 3500)) {
+                            int myX = MCT.getMyX();
+                            int myY = MCT.getMyY();
+                            int dist = (myX >= 0 && myY >= 0) ? Math.max(Math.abs(myX - destX), Math.abs(myY - destY)) : 999;
+                            if (dist <= 2) {
+                                break;
                             }
+                            Thread.sleep(200);
+                        }
 
-                            Thread.sleep(300);
+                        // Sau khi di chuyển tới vị trí Boss: BẬT Auto đánh theo chuẩn ghlb.jar
+                        if (isAutoPhuBan) {
+                            if (autoFightEnabled) {
+                                System.out.println("[AutoPB-Move] Reached Boss " + (targetIndex + 1) + " area (" + destX + "," + destY + ") -> TURNING ON AUTO FIGHT!");
+                                MCT.setAutoFight(true);
+                                startAutoSkillLoop();
+                            } else {
+                                System.out.println("[AutoPB-Move] Reached Boss " + (targetIndex + 1) + ", but autoFightEnabled is OFF.");
+                            }
                         }
                     } catch (Throwable t) {
-                        System.out.println("[AutoPB-Move] Exception in travel thread: " + t);
+                        System.out.println("[AutoPB-Move] Error: " + t);
                     }
                 }
             }).start();
         } catch (Throwable t) {
             System.out.println("[AutoPB-Move] Exception in moveToTarget: " + t);
         }
+    }
+
+    /**
+     * Hook lọc chuỗi trực tiếp từ a.z.a(I)Ljava/lang/String; theo chuẩn 100% của ghlb.jar (z.java dòng 110-198):
+     * Khi mở menu cổng Tuyệt Tình Cốc, chỉ giữ lại 1 cấp độ phụ bản đã chọn trên UI, ẩn toàn bộ các tùy chọn khác.
+     */
+    public static String filterServerMessage(String msg) {
+        if (msg == null) return null;
+
+        try {
+            onServerMessage(msg);
+        } catch (Throwable t) {}
+
+        if (!isAutoPhuBan) return msg;
+
+        String norm = normalize(msg);
+        logDebug("[FilterServerMsg] in='" + msg + "' -> norm='" + norm + "' (selectedDungeon=" + selectedDungeon + ")");
+
+        // Lọc menu cổng Tuyệt Tình Cốc đúng 100% logic ghlb.jar z.java:
+        if (selectedDungeon == 0) { // 1. Đơn giản -> Ẩn các cấp khác
+            if (norm.indexOf("pho thong") != -1 || norm.indexOf("ac mong") != -1 || norm.indexOf("tinh anh") != -1 ||
+                norm.indexOf("phan thuong qua ai") != -1 || norm.indexOf("noi nay khong nen o lai lau") != -1) {
+                logDebug("[FilterServerMsg] -> [FILTERED OUT: NULL] " + msg);
+                return null;
+            }
+        } else if (selectedDungeon == 1) { // 2. Phổ thông -> Ẩn các cấp khác
+            if (norm.indexOf("don gian") != -1 || norm.indexOf("ac mong") != -1 || norm.indexOf("tinh anh") != -1 ||
+                norm.indexOf("phan thuong qua ai") != -1 || norm.indexOf("noi nay khong nen o lai lau") != -1) {
+                logDebug("[FilterServerMsg] -> [FILTERED OUT: NULL] " + msg);
+                return null;
+            }
+        } else if (selectedDungeon == 2) { // 3. Ác mộng -> Ẩn các cấp khác
+            if (norm.indexOf("don gian") != -1 || norm.indexOf("pho thong") != -1 || norm.indexOf("tinh anh") != -1 ||
+                norm.indexOf("phan thuong qua ai") != -1 || norm.indexOf("noi nay khong nen o lai lau") != -1) {
+                logDebug("[FilterServerMsg] -> [FILTERED OUT: NULL] " + msg);
+                return null;
+            }
+        } else if (selectedDungeon == 3) { // 4. Tinh anh -> Ẩn các cấp khác
+            if (norm.indexOf("don gian") != -1 || norm.indexOf("pho thong") != -1 || norm.indexOf("ac mong") != -1 ||
+                norm.indexOf("phan thuong qua ai") != -1 || norm.indexOf("noi nay khong nen o lai lau") != -1) {
+                logDebug("[FilterServerMsg] -> [FILTERED OUT: NULL] " + msg);
+                return null;
+            }
+        }
+
+        logDebug("[FilterServerMsg] -> [KEPT: STRING] " + msg);
+        return msg;
     }
 
     /**
@@ -1322,61 +1561,133 @@ public final class AutoMenu {
 
         String norm = normalize(msg);
 
-        // 1. Tự động giải Captcha chống bot nếu xuất hiện (ghlb.jar z.java)
+        // 1. Kiểm tra số lần khiêu chiến còn lại hôm nay từ thông báo server (VD: "Hôm nay còn khiêu chiến được10lần")
+        if (norm.indexOf("khieu chien duoc") != -1) {
+            int idx = norm.indexOf("khieu chien duoc");
+            int startNum = idx + "khieu chien duoc".length();
+            while (startNum < norm.length() && (norm.charAt(startNum) == ' ' || norm.charAt(startNum) == ':')) {
+                startNum++;
+            }
+            int endNum = startNum;
+            while (endNum < norm.length() && Character.isDigit(norm.charAt(endNum))) {
+                endNum++;
+            }
+            if (endNum > startNum) {
+                try {
+                    int remainingTurns = Integer.parseInt(norm.substring(startNum, endNum));
+                    logDebug("[AutoPB] >>> So lan khieu chien con lai: " + remainingTurns);
+                    System.out.println("[AutoPB] >>> Remaining dungeon turns: " + remainingTurns);
+                    if (remainingTurns <= 0) {
+                        logDebug("[AutoPB] >>> Da het so lan khieu chien phu ban (0 lan)! TU DONG DUNG AUTO PHU BAN.");
+                        System.out.println("[AutoPB] >>> 0 turns left! Stopping Auto PB.");
+                        isAutoPhuBan = false;
+                        bossNum = 0;
+                        try { MCT.setAutoFight(false); } catch (Throwable t) {}
+                        return;
+                    }
+                } catch (Throwable t) {}
+            }
+        }
+
+        // Tự động vứt rác khi hoàn thành phụ bản (KỂ CẢ KHI TẮT AUTO PHỤ BẢN, chỉ cần BẬT Tự động vứt rác)
+        // CHỈ kích hoạt khi thực sự ở trong phụ bản và xuất hiện thoại "Đưa ta rời khỏi đây / nơi này"
+        int curX = MCT.getMyX();
+        int curY = MCT.getMyY();
+        boolean isAtGate = (curX > 0 && curY > 0 && Math.abs(curX - 62) <= 5 && Math.abs(curY - 8) <= 5);
+
+        if (!isAtGate && autoPbDropTrash && norm.indexOf("dua ta roi khoi") != -1) {
+            logDebug("[AutoPB-Trash] Phat hien thoai 'Dua ta roi khoi' -> Tu dong vut rac...");
+            System.out.println("[AutoPB-Trash] Dungeon clear ('Dua ta roi khoi') -> Running auto drop trash...");
+            new Thread(new Runnable() {
+                public void run() {
+                    try {
+                        Thread.sleep(800);
+                        dropAllTrashSync();
+                    } catch (Throwable t) {}
+                }
+            }).start();
+        }
+
+        // >>> CHỈ THỰC HIỆN CÁC TÁC VỤ DƯỚI ĐÂY KHI ĐANG BẬT AUTO PHỤ BẢN <<<
+        if (!isAutoPhuBan) return;
+
+        // 2. Tự động giải Captcha chống bot nếu xuất hiện (CHỈ KHI BẬT AUTO PHỤ BẢN)
         if (msg.indexOf("Chu\u1ed1i s\u1ed1") != -1 || msg.indexOf("Chuoi so") != -1 || msg.indexOf("ph\u00e9p nh\u00e2n") != -1 || msg.indexOf("ph\u00e9p c\u1ed9ng") != -1) {
             solveCaptcha(msg);
         }
 
-        if (!isAutoPhuBan) return;
+        // 3. Tự động chọn cấp độ phụ bản qua CMD 1074 khi mở menu cổng Tuyệt Tình Cốc
+        if (norm.indexOf("cam dia tuyet tinh coc") != -1 || norm.indexOf("khieu chien duoc") != -1 ||
+            (norm.indexOf("tuyet tinh coc") != -1 && (norm.indexOf("cap") != -1 || norm.indexOf("don gian") != -1 || norm.indexOf("pho thong") != -1 || norm.indexOf("ac mong") != -1 || norm.indexOf("tinh anh") != -1))) {
+            long now = System.currentTimeMillis();
+            if (now - lastGateSelectTime > 2000) {
+                lastGateSelectTime = now;
+                final int dungeonIdx = selectedDungeon;
+                logDebug("[AutoPB] >>> Phat hien menu cong Phu Ban -> Tu dong vao Cap Do " + dungeonIdx + " (" + DUNGEON_SHORT_LIST[dungeonIdx] + ")");
+                System.out.println("[AutoPB] >>> Entering dungeon level " + dungeonIdx + " (" + DUNGEON_SHORT_LIST[dungeonIdx] + ") via CMD 1074...");
+                new Thread(new Runnable() {
+                    public void run() {
+                        try {
+                            Thread.sleep(200);
+                            logDebug("[AutoPB] >>> Step 1: Gui CMD 1074: p0=byte(0)");
+                            MCT.sendBytes(new byte[]{4, 50, 2, 0});
+                            try { f.a(20); } catch (Throwable t) {}
+                            try { f.a(21); } catch (Throwable t) {}
 
-        // 2. Tự động chọn xác nhận vào phụ bản khi đứng ở cổng (62, 8) theo cấp độ đã chọn trên UI (ghlb.jar z.java)
-        for (int i = 0; i < DUNGEON_LIST.length; i++) {
-            if (i == selectedDungeon && (msg.indexOf(DUNGEON_LIST[i]) != -1 || norm.indexOf(normalize(DUNGEON_SHORT_LIST[i])) != -1)) {
-                System.out.println("[AutoPB-Msg] >>> Found matching entrance dialog for " + DUNGEON_LIST[i] + "! Sending enter option packet...");
-                byte[] selectOptionPacket = new byte[]{7, (byte)-16, 3, 0, 0, 3, 0, 0, 4, 0, 0, 0, 0, 3, 0, 0, 2, 1, 2, 101, 6, 0, 0};
-                MCT.sendBytes(selectOptionPacket);
-                break;
+                            Thread.sleep(300);
+                            logDebug("[AutoPB] >>> Step 2: Gui CMD 1074: p0=byte(2) [Xac nhan]");
+                            MCT.sendBytes(new byte[]{4, 50, 2, 2});
+                            try { f.a(20); } catch (Throwable t) {}
+                            try { f.a(21); } catch (Throwable t) {}
+                            try { f.a(28); } catch (Throwable t) {}
+                            try { f.a(29); } catch (Throwable t) {}
+                            try { f.a(30); } catch (Throwable t) {}
+                        } catch (Throwable t) {}
+                    }
+                }).start();
             }
+            return;
         }
 
-        // 3. Kiểm tra nhận được Giang Hồ Lệnh Bài -> Đã diệt xong 1 Boss (ghlb.jar z.java)
-        boolean hasNhanDuoc = norm.indexOf("nhan duoc") != -1 || norm.startsWith("ban nhan");
-        boolean hasLenhBai = norm.indexOf("giang ho lenh bai") != -1 || (norm.indexOf("giang ho") != -1 && norm.indexOf("lenh bai") != -1);
-
-        if (hasNhanDuoc && hasLenhBai) {
-            System.out.println("[AutoPB-Msg] >>> DETECTED Giang Ho Lenh Bai! Current bossNum=" + bossNum);
-            // TẠM DỪNG AUTO ĐÁNH NGAY LẬP TỨC
-            MCT.setAutoFight(false);
-
-            if (bossNum == 0) {
-                bossNum = 1;
-                System.out.println("[AutoPB-Msg] >>> Boss 1 Killed! Moving to Boss 2 (Cầu/Cừu thiên xích)...");
-                moveToTarget(1);
-            } else if (bossNum == 1) {
-                bossNum = 2;
-                System.out.println("[AutoPB-Msg] >>> Boss 2 Killed! Moving to Boss 3 (Công tôn chỉ)...");
-                moveToTarget(2);
-            } else if (bossNum >= 2) {
-                bossNum = 3;
-                System.out.println("[AutoPB-Msg] >>> Killed 3 Bosses! Auto exiting dungeon using ghlb packet...");
-                exitDungeon();
+        // Tự động xác nhận khi hiện popup "Bạn có chắc chắn?"
+        if (norm.indexOf("ban co chac chan") != -1 || norm.indexOf("chac chan") != -1) {
+            long now = System.currentTimeMillis();
+            if (now - lastGateConfirmTime > 2000) {
+                lastGateConfirmTime = now;
+                logDebug("[AutoPB] >>> Phat hien popup xac nhan vao phu ban -> Gui CMD 1074: p0=byte(2) [Dong y]");
+                System.out.println("[AutoPB] >>> Confirming dungeon entry via CMD 1074: p0=2...");
+                new Thread(new Runnable() {
+                    public void run() {
+                        try {
+                            Thread.sleep(200);
+                            MCT.sendBytes(new byte[]{4, 50, 2, 2});
+                            try { f.a(20); } catch (Throwable t) {}
+                            try { f.a(21); } catch (Throwable t) {}
+                            try { f.a(28); } catch (Throwable t) {}
+                            try { f.a(29); } catch (Throwable t) {}
+                            try { f.a(30); } catch (Throwable t) {}
+                        } catch (Throwable t) {}
+                    }
+                }).start();
             }
+            return;
         }
 
-        // 4. Xử lý khi nhận phần thưởng / thông báo kết thúc ải / quay lại
-        if (norm.indexOf("noi nay khong nen o lai lau") != -1 || norm.indexOf("phan thuong qua ai") != -1 || norm.indexOf("quay lai") != -1 || norm.indexOf("roi khoi") != -1) {
-            System.out.println("[AutoPB-Msg] >>> Dungeon clear notification! Dismissing dialog and preparing to re-enter...");
-            byte[] dismissPacket = new byte[]{7, (byte)-16, 3, 0, 0, 3, 0, 0, 4, 0, 0, 0, 0, 3, 0, 0, 2, 1, 2, 101, 6, 0, 0};
-            MCT.sendBytes(dismissPacket);
+        // 5. Xử lý khi nhận thông báo kết thúc ải sau khi đánh Boss (CHỈ khi xuất hiện "Đưa ta rời khỏi")
+        if (!isAtGate && norm.indexOf("dua ta roi khoi") != -1) {
+            System.out.println("[AutoPB-Msg] >>> Dungeon clear notification ('Dua ta roi khoi')! Dismissing dialog and preparing to re-enter...");
             MCT.setAutoFight(false);
             bossNum = 0;
-            // Nếu vẫn đang bật Auto Phụ Bản, tự động vào lại phụ bản theo độ khó đã chọn sau 1.5 giây
+            // Nếu vẫn đang bật Auto Phụ Bản, tự động vứt rác nếu bật và vào lại phụ bản theo độ khó đã chọn
             if (isAutoPhuBan) {
                 new Thread(new Runnable() {
                     public void run() {
                         try {
                             Thread.sleep(1500);
                             if (isAutoPhuBan) {
+                                if (autoPbDropTrash) {
+                                    dropAllTrashSync();
+                                }
                                 enterDungeonByLevel(selectedDungeon);
                             }
                         } catch (Throwable t) {}
@@ -1385,10 +1696,11 @@ public final class AutoMenu {
             }
         }
 
-        // 5. Kiểm tra khi HẾT LƯỢT / GIỚI HẠN SỐ LẦN VÀO PHỤ BẢN -> DỪNG AUTO
+        // 6. Kiểm tra khi HẾT LƯỢT / GIỚI HẠN SỐ LẦN VÀO PHỤ BẢN -> DỪNG AUTO
         if (norm.indexOf("so lan vao phu ban") != -1 || norm.indexOf("khong du so lan") != -1 ||
             norm.indexOf("da het luot") != -1 || norm.indexOf("vuot qua gioi han") != -1 ||
             (norm.indexOf("so lan") != -1 && norm.indexOf("da het") != -1)) {
+            logDebug("[AutoPB-Msg] >>> Da het luot vao phu ban! DUNG AUTO.");
             System.out.println("[AutoPB-Msg] >>> Out of dungeon turns! Stopping auto.");
             isAutoPhuBan = false;
             bossNum = 0;
@@ -1696,7 +2008,7 @@ public final class AutoMenu {
 
         } else if (currentScreen == SCREEN_DUNGEON) {
             // Render 4 Dungeons of Cấm địa Tuyệt tình cốc
-            int itemH = 17;
+            int itemH = 16;
             int itemGap = 2;
             int listStartY = contentTop + 1;
 
@@ -1722,16 +2034,24 @@ public final class AutoMenu {
                 drawButton(g, font, dName, btnX, itemY, btnW, itemH, itemBg, itemBorder, itemTextColor);
             }
 
-            // Button: Auto Đánh [BẬT / TẮT]
-            int fightBtnY = listStartY + 4 * (itemH + itemGap);
+            // Option 5: Tự động vứt rác [BẬT / TẮT]
+            int trashBtnY = listStartY + 4 * (itemH + itemGap);
+            String trashText = "T\u1ef1 \u0111\u1ed9ng v\u1ee9t r\u00e1c: [" + (autoPbDropTrash ? "B\u1eacT" : "T\u1eaeT") + "]";
+            int trashBg = autoPbDropTrash ? 0x1E4A28 : 0x2A2016;
+            int trashBorder = autoPbDropTrash ? 0x4E9F3D : 0x5C462C;
+            int trashTextColor = autoPbDropTrash ? 0xD8E9A8 : 0xFFF799;
+            drawButton(g, font, trashText, btnX, trashBtnY, btnW, itemH, trashBg, trashBorder, trashTextColor);
+
+            // Option 6: Button: Auto Đánh [BẬT / TẮT]
+            int fightBtnY = trashBtnY + itemH + itemGap;
             String fightText = "Auto \u0110\u00e1nh: [" + (autoFightEnabled ? "B\u1eacT" : "T\u1eaeT") + "]";
             int fightBg = autoFightEnabled ? 0x1E4A28 : 0x4A2828;
             int fightBorder = autoFightEnabled ? 0x4E9F3D : 0x9E2A2B;
             int fightTextColor = autoFightEnabled ? 0xD8E9A8 : 0xFFD0D0;
             drawButton(g, font, fightText, btnX, fightBtnY, btnW, itemH, fightBg, fightBorder, fightTextColor);
 
-            // Skill combo button
-            int skillBtnY = fightBtnY + itemH + 2;
+            // Option 7: Skill combo button
+            int skillBtnY = fightBtnY + itemH + itemGap;
             String skillLabel = "Chi\u00eau: [" + skillString + "]";
             if (font.stringWidth(skillLabel) > btnW - 6) {
                 skillLabel = "Chi\u00eau \u0111\u00e1nh: [S\u1eeda]";
@@ -2067,11 +2387,11 @@ public final class AutoMenu {
             }
 
         } else if (currentScreen == SCREEN_DUNGEON) {
-            int itemH = 17;
+            int itemH = 16;
             int itemGap = 2;
             int listStartY = contentTop + 1;
 
-            // Click on Dungeon Items
+            // Click on Dungeon Items (0..3)
             for (int i = 0; i < DUNGEON_LIST.length; i++) {
                 int itemY = listStartY + i * (itemH + itemGap);
                 if (px >= btnX && px <= btnX + btnW && py >= itemY && py <= itemY + itemH) {
@@ -2081,9 +2401,17 @@ public final class AutoMenu {
                 }
             }
 
+            // Click "Tự động vứt rác [BẬT / TẮT]"
+            int trashBtnY = listStartY + 4 * (itemH + itemGap);
+            if (px >= btnX - 4 && px <= btnX + btnW + 4 && py >= trashBtnY - 2 && py <= trashBtnY + itemH + 2) {
+                autoPbDropTrash = !autoPbDropTrash;
+                System.out.println("[AutoMenu] Toggle autoPbDropTrash: " + autoPbDropTrash);
+                return true;
+            }
+
             // Click "Auto Đánh [BẬT / TẮT]" button trong menu phụ bản
-            int fightBtnY = listStartY + 4 * (itemH + itemGap);
-            if (px >= btnX && px <= btnX + btnW && py >= fightBtnY && py <= fightBtnY + itemH) {
+            int fightBtnY = trashBtnY + itemH + itemGap;
+            if (px >= btnX - 4 && px <= btnX + btnW + 4 && py >= fightBtnY - 2 && py <= fightBtnY + itemH + 2) {
                 autoFightEnabled = !autoFightEnabled;
                 System.out.println("[AutoMenu] Toggle autoFightEnabled: " + autoFightEnabled);
                 if (!autoFightEnabled) {
@@ -2095,8 +2423,8 @@ public final class AutoMenu {
             }
 
             // Click "Cài đặt Chiêu đánh" button trong menu phụ bản
-            int skillBtnY = fightBtnY + itemH + 2;
-            if (px >= btnX && px <= btnX + btnW && py >= skillBtnY && py <= skillBtnY + itemH) {
+            int skillBtnY = fightBtnY + itemH + itemGap;
+            if (px >= btnX - 4 && px <= btnX + btnW + 4 && py >= skillBtnY - 2 && py <= skillBtnY + itemH + 2) {
                 openSkillInput();
                 return true;
             }
