@@ -464,6 +464,107 @@ public final class PatchAutoPopup {
         mvMyY.visitMaxs(1, 1);
         mvMyY.visitEnd();
 
+        // 15. public static java.util.Vector getBagVector()
+        MethodVisitor mvBag = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "getBagVector", "()Ljava/util/Vector;", null, null);
+        mvBag.visitCode();
+        Label startBag = new Label();
+        Label endBag = new Label();
+        Label handlerBag = new Label();
+        mvBag.visitTryCatchBlock(startBag, endBag, handlerBag, "java/lang/Throwable");
+        mvBag.visitLabel(startBag);
+        mvBag.visitFieldInsn(Opcodes.GETSTATIC, "a/ay", "a", "Ljava/util/Vector;");
+        mvBag.visitLabel(endBag);
+        mvBag.visitInsn(Opcodes.ARETURN);
+        mvBag.visitLabel(handlerBag);
+        mvBag.visitVarInsn(Opcodes.ASTORE, 0);
+        mvBag.visitInsn(Opcodes.ACONST_NULL);
+        mvBag.visitInsn(Opcodes.ARETURN);
+        mvBag.visitMaxs(1, 1);
+        mvBag.visitEnd();
+
+        // 16. public static String getItemName(Object obj)
+        MethodVisitor mvIname = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "getItemName", "(Ljava/lang/Object;)Ljava/lang/String;", null, null);
+        mvIname.visitCode();
+        Label s1 = new Label();
+        Label s2 = new Label();
+        Label s3 = new Label();
+        mvIname.visitTryCatchBlock(s1, s2, s3, "java/lang/Throwable");
+        mvIname.visitLabel(s1);
+        mvIname.visitVarInsn(Opcodes.ALOAD, 0);
+        mvIname.visitTypeInsn(Opcodes.CHECKCAST, "a/bc");
+        mvIname.visitFieldInsn(Opcodes.GETFIELD, "a/bc", "a", "Ljava/lang/String;");
+        mvIname.visitLabel(s2);
+        mvIname.visitInsn(Opcodes.ARETURN);
+        mvIname.visitLabel(s3);
+        mvIname.visitVarInsn(Opcodes.ASTORE, 1);
+        mvIname.visitInsn(Opcodes.ACONST_NULL);
+        mvIname.visitInsn(Opcodes.ARETURN);
+        mvIname.visitMaxs(1, 2);
+        mvIname.visitEnd();
+
+        // 17. public static int getItemId(Object obj)
+        MethodVisitor mvIid = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "getItemId", "(Ljava/lang/Object;)I", null, null);
+        mvIid.visitCode();
+        Label id1 = new Label();
+        Label id2 = new Label();
+        Label id3 = new Label();
+        mvIid.visitTryCatchBlock(id1, id2, id3, "java/lang/Throwable");
+        mvIid.visitLabel(id1);
+        mvIid.visitVarInsn(Opcodes.ALOAD, 0);
+        mvIid.visitTypeInsn(Opcodes.CHECKCAST, "a/bc");
+        mvIid.visitFieldInsn(Opcodes.GETFIELD, "a/bc", "a", "I");
+        mvIid.visitLabel(id2);
+        mvIid.visitInsn(Opcodes.IRETURN);
+        mvIid.visitLabel(id3);
+        mvIid.visitVarInsn(Opcodes.ASTORE, 1);
+        mvIid.visitInsn(Opcodes.ICONST_0);
+        mvIid.visitInsn(Opcodes.IRETURN);
+        mvIid.visitMaxs(1, 2);
+        mvIid.visitEnd();
+
+        // 18. public static int getItemCount(Object obj)
+        MethodVisitor mvIcnt = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "getItemCount", "(Ljava/lang/Object;)I", null, null);
+        mvIcnt.visitCode();
+        Label c1 = new Label();
+        Label c2 = new Label();
+        Label c3 = new Label();
+        mvIcnt.visitTryCatchBlock(c1, c2, c3, "java/lang/Throwable");
+        mvIcnt.visitLabel(c1);
+        mvIcnt.visitVarInsn(Opcodes.ALOAD, 0);
+        mvIcnt.visitTypeInsn(Opcodes.CHECKCAST, "a/bc");
+        mvIcnt.visitFieldInsn(Opcodes.GETFIELD, "a/bc", "a", "B");
+        mvIcnt.visitLabel(c2);
+        mvIcnt.visitInsn(Opcodes.IRETURN);
+        mvIcnt.visitLabel(c3);
+        mvIcnt.visitVarInsn(Opcodes.ASTORE, 1);
+        mvIcnt.visitInsn(Opcodes.ICONST_1);
+        mvIcnt.visitInsn(Opcodes.IRETURN);
+        mvIcnt.visitMaxs(1, 2);
+        mvIcnt.visitEnd();
+
+        // 19. public static void dropItem(int itemId, int count)
+        MethodVisitor mvDrop = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "dropItem", "(II)V", null, null);
+        mvDrop.visitCode();
+        Label d1 = new Label();
+        Label d2 = new Label();
+        Label d3 = new Label();
+        mvDrop.visitTryCatchBlock(d1, d2, d3, "java/lang/Throwable");
+        mvDrop.visitLabel(d1);
+        mvDrop.visitInsn(Opcodes.ICONST_1); // (byte)1
+        mvDrop.visitFieldInsn(Opcodes.GETSTATIC, "a/ap", "o", "I"); // ap.o
+        mvDrop.visitVarInsn(Opcodes.ILOAD, 0); // itemId
+        mvDrop.visitVarInsn(Opcodes.ILOAD, 1); // count
+        mvDrop.visitInsn(Opcodes.I2S); // (short)count
+        mvDrop.visitInsn(Opcodes.ICONST_0); // (byte)0
+        mvDrop.visitMethodInsn(Opcodes.INVOKESTATIC, "a/u", "a", "(BIISB)V");
+        mvDrop.visitLabel(d2);
+        mvDrop.visitInsn(Opcodes.RETURN);
+        mvDrop.visitLabel(d3);
+        mvDrop.visitVarInsn(Opcodes.ASTORE, 2);
+        mvDrop.visitInsn(Opcodes.RETURN);
+        mvDrop.visitMaxs(5, 3);
+        mvDrop.visitEnd();
+
         cw.visitEnd();
         return cw.toByteArray();
     }
@@ -557,6 +658,10 @@ public final class PatchAutoPopup {
 
                     public void visitMethodInsn(int opcode, String owner, String methodName, String methodDesc) {
                         flushPendingAload0();
+                        // Loại bỏ lệnh MCT.tele() kích hoạt lỗi khi ấn gửi chat
+                        if (opcode == Opcodes.INVOKESTATIC && "a/MCT".equals(owner) && "tele".equals(methodName)) {
+                            return;
+                        }
                         super.visitMethodInsn(opcode, owner, methodName, methodDesc);
                     }
 

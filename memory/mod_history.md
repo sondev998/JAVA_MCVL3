@@ -54,3 +54,31 @@ Tài liệu ghi nhận toàn bộ các thay đổi, tính năng mới và cải 
   - Khi Boss xuất hiện trong danh sách thực thể `ay.k`: Nhân vật lập tức khóa mục tiêu và di chuyển thẳng đến tọa độ của Boss.
   - **CHỈ BẬT Auto Đánh** khi nhân vật đã tiếp cận sát Boss (khoảng cách $\le 2$ ô).
   - Khi Boss chết (nhận Lệnh bài): Lập tức **TẮT Auto Đánh**, tiếp tục tuần tra tìm Boss tiếp theo.
+
+---
+
+### 5. Khắc Phục Lỗi Tele Đội Trưởng & Thêm Nút Trên UI Popup
+
+- **Loại bỏ triệt để lỗi gửi chat tự tele:**
+  - Can thiệp bytecode loại bỏ lệnh gọi `MCT.tele()` trong hàm gửi chat `a.ad.a()V`, giúp khung chat hoạt động bình thường, không gây lỗi gửi tin nhắn.
+- **Nút bấm kích hoạt trên UI Popup:**
+  - Thêm nút **`Tele đến vị trí đội trưởng`** trực tiếp trên Menu chính của Popup Auto.
+  - Khi click: Gửi gói tin `[4, -110, 3, 0, 6, 2, 1]` lập tức đưa nhân vật đến vị trí của đội trưởng.
+
+---
+
+### 6. Menu "Vứt Đồ Rác" (Discard Trash Items)
+
+- **Menu chuyên dụng (`SCREEN_TRASH`):**
+  - Thêm nút **`Vứt đồ rác`** trên Menu chính để mở giao diện quản lý vứt đồ.
+  - Hỗ trợ 7 tùy chọn vứt nhanh theo loại:
+    1. `1. Vứt đồ chưa giám định`
+    2. `2. Vứt đay`
+    3. `3. Vứt tơ`
+    4. `4. Vứt da sống`
+    5. `5. Vứt da nhẹ`
+    6. `6. Vứt khoáng thạch`
+    7. `7. Vứt bạch dược`
+- **Cơ chế gửi packet ngầm:**
+  - Tự động duyệt danh sách hành trang `MCT.getBagVector()` (`ay.a`), nhận diện tên và thuộc tính vật phẩm, sau đó gửi gói tin vứt đồ `1033` (`u.a((byte)1, ap.o, itemId, count, 0)`) với khoảng nghỉ 120ms đảm bảo an toàn và mượt mà.
+

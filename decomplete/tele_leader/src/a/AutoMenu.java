@@ -16,7 +16,18 @@ public final class AutoMenu {
     public static final int SCREEN_MAIN = 0;
     public static final int SCREEN_FARM = 1;
     public static final int SCREEN_DUNGEON = 2;
+    public static final int SCREEN_TRASH = 3;
     public static int currentScreen = SCREEN_MAIN;
+
+    public static final String[] TRASH_OPTIONS = {
+        "1. V\u1ee9t \u0111\u1ed3 ch\u01b0a gi\u00e1m \u0111\u1ecbnh",
+        "2. V\u1ee9t \u0111ay",
+        "3. V\u1ee9t t\u01a1",
+        "4. V\u1ee9t da s\u1ed1ng",
+        "5. V\u1ee9t da nh\u1eb9",
+        "6. V\u1ee9t kho\u00e1ng th\u1ea1ch",
+        "7. V\u1ee9t b\u1ea1ch d\u01b0\u1ee3c"
+    };
 
     // Feature toggle states
     public static boolean autoPlantEnabled = false;
@@ -46,10 +57,11 @@ public final class AutoMenu {
     public static int speedIndex = 0;
 
     // Cài đặt combo chiêu đánh (Skill combo từ ghlb.jar)
-    public static String skillString = "1,2,3,4,5,6,7,8";
-    public static int[] parsedSkills = {49, 50, 51, 52, 53, 54, 55, 56};
+    public static String skillString = "-5:0,49:0,50:0,51:0,52:0,53:0,54:0,55:0,56:0";
+    public static int[] parsedSkills = {-5, 49, 50, 51, 52, 53, 54, 55, 56};
     public static int skillDelay = 200; // ms giữa các chiêu
     private static Thread autoSkillThread;
+    public static boolean isFightingBoss = false;
 
     // 4 Phụ bản thực tế trong mã nguồn game (Cấm địa Tuyệt tình cốc)
     public static final String[] DUNGEON_LIST = {
@@ -70,11 +82,15 @@ public final class AutoMenu {
 
     /**
      * Parse chuỗi cài đặt chiêu đánh thành mảng keycodes.
+     * Hỗ trợ mọi định dạng:
+     * - "1,2,3,4,5,6,7,8"
+     * - "49,50,51,52,53,54,55,56"
+     * - "-5:0,49:0,50:0,51:0,52:0,53:0,54:0,55:0,56:0" (Chuẩn Kalvaz AutoClick)
+     * - "-5:1,49:1,50:1,..."
      */
     public static void parseSkills(String input) {
         if (input == null || input.trim().length() == 0) {
-            parsedSkills = new int[]{49, 50, 51, 52, 53, 54, 55, 56};
-            return;
+            input = "-5:0,49:0,50:0,51:0,52:0,53:0,54:0,55:0,56:0";
         }
         try {
             Vector list = new Vector();
@@ -107,6 +123,7 @@ public final class AutoMenu {
                 for (int i = 0; i < list.size(); i++) {
                     parsedSkills[i] = ((Integer) list.elementAt(i)).intValue();
                 }
+                System.out.println("[AutoSkill] Parsed " + parsedSkills.length + " skills successfully.");
             }
         } catch (Throwable t) {
             System.out.println("[AutoSkill] parseSkills error: " + t);
@@ -114,13 +131,16 @@ public final class AutoMenu {
     }
 
     /**
-     * Thực thi bấm phím chiêu đánh trên game canvas.
+     * Thực thi bấm phím chiêu đánh trên game canvas với delay giữ phím 25ms.
      */
     public static void castSkill(int keyCode) {
         try {
             ac canvas = ac.a();
             if (canvas != null) {
                 canvas.leyPressed(keyCode);
+                try {
+                    Thread.sleep(25);
+                } catch (Throwable t) {}
                 canvas.leyReleased(keyCode);
             }
         } catch (Throwable t) {}
@@ -135,8 +155,14 @@ public final class AutoMenu {
         autoSkillThread = new Thread(new Runnable() {
             public void run() {
                 int idx = 0;
-                while (isAutoPhuBan && autoFightEnabled) {
+                while (autoFightEnabled) {
                     try {
+                        // Nếu đang trong phụ bản và chưa tiếp cận Boss (đang tuần tra tìm đường) -> tạm nghỉ
+                        if (isAutoPhuBan && !isFightingBoss) {
+                            Thread.sleep(150);
+                            continue;
+                        }
+
                         if (parsedSkills != null && parsedSkills.length > 0) {
                             int key = parsedSkills[idx % parsedSkills.length];
                             castSkill(key);
@@ -160,7 +186,7 @@ public final class AutoMenu {
      */
     public static void openSkillInput() {
         try {
-            final TextBox tb = new TextBox("Chi\u00eau \u0111\u00e1nh (1-8):", skillString, 500, 0);
+            final TextBox tb = new TextBox("Chi\u00eau (1-8 ho\u1eb7c -5:0,49:0..):", skillString, 500, 0);
             final Command cmdSave = new Command("L\u01b0u", Command.OK, 1);
             final Command cmdCancel = new Command("H\u1ee7y", Command.CANCEL, 2);
             tb.addCommand(cmdSave);
@@ -170,6 +196,9 @@ public final class AutoMenu {
                     if (c == cmdSave) {
                         skillString = tb.getString();
                         parseSkills(skillString);
+                        if (autoFightEnabled) {
+                            startAutoSkillLoop();
+                        }
                         System.out.println("[AutoSkill] Saved skill sequence: " + skillString);
                     }
                     try {
@@ -306,6 +335,110 @@ public final class AutoMenu {
         pos = findEntityByName("thua phong");
         if (pos != null) return pos;
         return null;
+    }
+
+    /**
+     * Teleport tức thì đến vị trí của Đội trưởng (Packet 4, -110, 3, 0, 6, 2, 1).
+     */
+    public static void teleToLeader() {
+        System.out.println("[AutoMenu] >>> Teleporting to team leader position...");
+        try {
+            MCT.tele();
+        } catch (Throwable t) {
+            System.out.println("[AutoMenu] teleToLeader error: " + t);
+        }
+        try { f.a(21); } catch (Throwable t) {}
+        try { f.a(22); } catch (Throwable t) {}
+        try { f.a(20); } catch (Throwable t) {}
+    }
+
+    /**
+     * Kiểm tra một vật phẩm trang bị xem có phải loại Chưa giám định không.
+     */
+    public static boolean isUnidentified(Object item) {
+        if (item == null) return false;
+        String name = MCT.getItemName(item);
+        if (name != null) {
+            String norm = normalize(name);
+            if (norm.indexOf("chua giam dinh") != -1 || norm.indexOf("chua xac dinh") != -1 || norm.indexOf("giam dinh") != -1) {
+                return true;
+            }
+        }
+        String str = MCT.getAfString(item);
+        if (str != null) {
+            String normStr = normalize(str);
+            if (normStr.indexOf("chua giam dinh") != -1 || normStr.indexOf("chua xac dinh") != -1 || normStr.indexOf("giam dinh") != -1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Vứt các loại vật phẩm rác khỏi hành trang (MCT.getBagVector()) bằng packet 1033.
+     */
+    public static void dropTrash(final int type) {
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    Vector bag = MCT.getBagVector();
+                    if (bag == null || bag.size() == 0) {
+                        System.out.println("[DropTrash] Bag is empty.");
+                        return;
+                    }
+                    int droppedCount = 0;
+                    for (int i = bag.size() - 1; i >= 0; i--) {
+                        Object item = bag.elementAt(i);
+                        if (item != null) {
+                            String name = MCT.getItemName(item);
+                            if (name == null) name = "";
+                            String norm = normalize(name);
+                            boolean match = false;
+
+                            if (type == 0) {
+                                // 1. Vứt đồ chưa giám định
+                                match = isUnidentified(item);
+                            } else if (type == 1) {
+                                // 2. Vứt đay
+                                match = (norm.indexOf("day") != -1 || norm.indexOf("vai day") != -1 || norm.indexOf("co day") != -1);
+                            } else if (type == 2) {
+                                // 3. Vứt tơ
+                                match = (norm.indexOf("to") != -1 || norm.indexOf("to tam") != -1 || norm.indexOf("soi to") != -1);
+                            } else if (type == 3) {
+                                // 4. Vứt da sống
+                                match = (norm.indexOf("da song") != -1);
+                            } else if (type == 4) {
+                                // 5. Vứt da nhẹ
+                                match = (norm.indexOf("da nhe") != -1);
+                            } else if (type == 5) {
+                                // 6. Vứt khoáng thạch
+                                match = (norm.indexOf("khoang thach") != -1 || norm.indexOf("quang") != -1);
+                            } else if (type == 6) {
+                                // 7. Vứt bạch dược
+                                match = (norm.indexOf("bach duoc") != -1);
+                            }
+
+                            if (match) {
+                                int itemId = MCT.getItemId(item);
+                                int count = MCT.getItemCount(item);
+                                if (count <= 0) count = 1;
+                                System.out.println("[DropTrash] Dropping '" + name + "' (id=" + itemId + ", count=" + count + ")");
+                                try {
+                                    MCT.dropItem(itemId, count);
+                                    droppedCount++;
+                                    Thread.sleep(120);
+                                } catch (Throwable t) {
+                                    System.out.println("[DropTrash] Drop packet error: " + t);
+                                }
+                            }
+                        }
+                    }
+                    System.out.println("[DropTrash] Completed dropping " + droppedCount + " items for option " + type);
+                } catch (Throwable t) {
+                    System.out.println("[DropTrash] Exception: " + t);
+                }
+            }
+        }).start();
     }
 
     /**
@@ -537,6 +670,7 @@ public final class AutoMenu {
 
                                 // CHỈ BẬT AUTO ĐÁNH KHI ĐÃ ĐẾN SÁT VỊ TRÍ BOSS (dist <= 2)
                                 if (dist <= 2) {
+                                    isFightingBoss = true;
                                     if (autoFightEnabled) {
                                         System.out.println("[AutoPB-Move] >>> REACHED Boss " + (targetIndex + 1) + "! Turning ON Auto Fight...");
                                         MCT.setAutoFight(true);
@@ -548,6 +682,7 @@ public final class AutoMenu {
                                 }
                             } else {
                                 // >>> CHƯA TÌM THẤY BOSS: TUYỆT ĐỐI KHÔNG BẬT AUTO ĐÁNH <<<
+                                isFightingBoss = false;
                                 MCT.setAutoFight(false);
 
                                 // Di chuyển tuần tra qua các điểm waypoint trên map để mở rộng tầm nhìn
@@ -821,6 +956,8 @@ public final class AutoMenu {
             title = "Auto N\u00f4ng Tr\u01b0\u1eddng";
         } else if (currentScreen == SCREEN_DUNGEON) {
             title = "C\u1ee5 th\u1ec3 ph\u1ee5 b\u1ea3n";
+        } else if (currentScreen == SCREEN_TRASH) {
+            title = "V\u1ee9t \u0111\u1ed3 r\u00e1c";
         } else {
             title = "Menu Auto";
         }
@@ -850,41 +987,54 @@ public final class AutoMenu {
         int btnX = x + 9;
 
         if (currentScreen == SCREEN_MAIN) {
-            // Button 1: Auto Nông Trường
-            int btnFarmY = contentTop + 2;
-            drawButton(g, font, "Auto N\u00f4ng Tr\u01b0\u1eddng", btnX, btnFarmY, btnW, btnH, 0x3B2D1D, 0xE5A93C, 0xFFF799);
+            int gap = 3;
+            int mBtnH = (h - headerH - 35) / 7;
+            if (mBtnH < 16) mBtnH = 16;
+            if (mBtnH > 20) mBtnH = 20;
 
-            // Button 2: Auto Phụ Bản
-            int btnDungeonY = btnFarmY + btnH + 4;
+            // 1. Auto Nông Trường
+            int btnFarmY = contentTop;
+            drawButton(g, font, "Auto N\u00f4ng Tr\u01b0\u1eddng", btnX, btnFarmY, btnW, mBtnH, 0x3B2D1D, 0xE5A93C, 0xFFF799);
+
+            // 2. Auto Phụ Bản
+            int btnDungeonY = btnFarmY + mBtnH + gap;
             String dBtnText = isAutoPhuBan ? "Auto Ph\u1ee5 B\u1ea3n [B\u1eacT]" : "Auto Ph\u1ee5 B\u1ea3n";
             int dBtnBg = isAutoPhuBan ? 0x1E4A28 : 0x3B2D1D;
             int dBtnBorder = isAutoPhuBan ? 0x4E9F3D : 0xE5A93C;
             int dBtnTextColor = isAutoPhuBan ? 0xD8E9A8 : 0xFFF799;
-            drawButton(g, font, dBtnText, btnX, btnDungeonY, btnW, btnH, dBtnBg, dBtnBorder, dBtnTextColor);
+            drawButton(g, font, dBtnText, btnX, btnDungeonY, btnW, mBtnH, dBtnBg, dBtnBorder, dBtnTextColor);
 
-            // Button 3: Auto Đánh [BẬT / TẮT]
-            int btnFightY = btnDungeonY + btnH + 4;
+            // 3. Tele đến vị trí đội trưởng
+            int btnTeleY = btnDungeonY + mBtnH + gap;
+            drawButton(g, font, "Tele \u0111\u1ebfn \u0111\u1ed9i tr\u01b0\u1edfng", btnX, btnTeleY, btnW, mBtnH, 0x1C3144, 0x3F88C5, 0xE0F0FF);
+
+            // 4. Vứt đồ rác
+            int btnTrashY = btnTeleY + mBtnH + gap;
+            drawButton(g, font, "V\u1ee9t \u0111\u1ed3 r\u00e1c", btnX, btnTrashY, btnW, mBtnH, 0x4A2828, 0xE5A93C, 0xFFF799);
+
+            // 5. Auto Đánh [BẬT / TẮT]
+            int btnFightY = btnTrashY + mBtnH + gap;
             String fightText = "Auto \u0110\u00e1nh: [" + (autoFightEnabled ? "B\u1eacT" : "T\u1eaeT") + "]";
             int fightBg = autoFightEnabled ? 0x1E4A28 : 0x4A2828;
             int fightBorder = autoFightEnabled ? 0x4E9F3D : 0x9E2A2B;
             int fightTextColor = autoFightEnabled ? 0xD8E9A8 : 0xFFD0D0;
-            drawButton(g, font, fightText, btnX, btnFightY, btnW, btnH, fightBg, fightBorder, fightTextColor);
+            drawButton(g, font, fightText, btnX, btnFightY, btnW, mBtnH, fightBg, fightBorder, fightTextColor);
 
-            // Button 4: Cài đặt Chiêu đánh (Skill Combo)
-            int btnSkillY = btnFightY + btnH + 4;
+            // 6. Cài đặt Chiêu đánh (Skill Combo)
+            int btnSkillY = btnFightY + mBtnH + gap;
             String skillLabel = "Chi\u00eau: [" + skillString + "]";
             if (font.stringWidth(skillLabel) > btnW - 6) {
                 skillLabel = "Chi\u00eau \u0111\u00e1nh: [S\u1eeda]";
             }
-            drawButton(g, font, skillLabel, btnX, btnSkillY, btnW, btnH, 0x2A2016, 0xE5A93C, 0xFFF799);
+            drawButton(g, font, skillLabel, btnX, btnSkillY, btnW, mBtnH, 0x2A2016, 0xE5A93C, 0xFFF799);
 
-            // Button 5: Tốc độ Game (Speed Hack)
-            int btnSpeedY = btnSkillY + btnH + 4;
+            // 7. Tốc độ Game (Speed Hack)
+            int btnSpeedY = btnSkillY + mBtnH + gap;
             String speedText = "T\u1ed1c \u0111\u1ed9 Game: " + speedMultiplier + "x";
             int speedBg = speedMultiplier > 1 ? 0x1C3144 : 0x3B2D1D;
             int speedBorder = speedMultiplier > 1 ? 0x3F88C5 : 0xE5A93C;
             int speedTextColor = speedMultiplier > 1 ? 0xE0F0FF : 0xFFF799;
-            drawButton(g, font, speedText, btnX, btnSpeedY, btnW, btnH, speedBg, speedBorder, speedTextColor);
+            drawButton(g, font, speedText, btnX, btnSpeedY, btnW, mBtnH, speedBg, speedBorder, speedTextColor);
 
             // Bottom [Dong] button
             int closeBtnW = Math.min(70, w - 30);
@@ -997,6 +1147,30 @@ public final class AutoMenu {
 
             int closeBtnX = backBtnX + navBtnW + 8;
             drawButton(g, font, "\u0110\u00f3ng", closeBtnX, navBtnY, navBtnW, navBtnH, 0x4A3728, 0xE5A93C, 0xFFF799);
+
+        } else if (currentScreen == SCREEN_TRASH) {
+            int itemH = 17;
+            int itemGap = 2;
+            int listStartY = contentTop + 1;
+
+            for (int i = 0; i < TRASH_OPTIONS.length; i++) {
+                int itemY = listStartY + i * (itemH + itemGap);
+                drawButton(g, font, TRASH_OPTIONS[i], btnX, itemY, btnW, itemH, 0x2A2016, 0x5C462C, 0xFFF799);
+            }
+
+            // Bottom [Quay lai] button
+            int backBtnW = Math.min(70, (w - 30) / 2);
+            int backBtnH = 19;
+            int backBtnX = x + 9;
+            int backBtnY = y + h - backBtnH - 6;
+            drawButton(g, font, "Quay l\u1ea1i", backBtnX, backBtnY, backBtnW, backBtnH, 0x3B2D1D, 0xE5A93C, 0xFFF799);
+
+            // Bottom [Dong] button
+            int closeBtnW = Math.min(70, (w - 30) / 2);
+            int closeBtnH = 19;
+            int closeBtnX = x + w - closeBtnW - 9;
+            int closeBtnY = y + h - closeBtnH - 6;
+            drawButton(g, font, "\u0110\u00f3ng", closeBtnX, closeBtnY, closeBtnW, closeBtnH, 0x4A3728, 0xE5A93C, 0xFFF799);
         }
 
         g.setFont(oldFont);
@@ -1061,41 +1235,64 @@ public final class AutoMenu {
         int btnX = x + 9;
 
         if (currentScreen == SCREEN_MAIN) {
-            // Click "Auto Nông Trường" button
-            int btnFarmY = contentTop + 2;
-            if (px >= btnX && px <= btnX + btnW && py >= btnFarmY && py <= btnFarmY + btnH) {
+            int gap = 3;
+            int mBtnH = (h - headerH - 35) / 7;
+            if (mBtnH < 16) mBtnH = 16;
+            if (mBtnH > 20) mBtnH = 20;
+
+            // 1. Click "Auto Nông Trường"
+            int btnFarmY = contentTop;
+            if (px >= btnX && px <= btnX + btnW && py >= btnFarmY && py <= btnFarmY + mBtnH) {
                 currentScreen = SCREEN_FARM;
                 return true;
             }
 
-            // Click "Auto Phụ Bản" button
-            int btnDungeonY = btnFarmY + btnH + 4;
-            if (px >= btnX && px <= btnX + btnW && py >= btnDungeonY && py <= btnDungeonY + btnH) {
+            // 2. Click "Auto Phụ Bản"
+            int btnDungeonY = btnFarmY + mBtnH + gap;
+            if (px >= btnX && px <= btnX + btnW && py >= btnDungeonY && py <= btnDungeonY + mBtnH) {
                 currentScreen = SCREEN_DUNGEON;
                 return true;
             }
 
-            // Click "Auto Đánh [BẬT / TẮT]" button (Dừng auto đánh độc lập)
-            int btnFightY = btnDungeonY + btnH + 4;
-            if (px >= btnX && px <= btnX + btnW && py >= btnFightY && py <= btnFightY + btnH) {
+            // 3. Click "Tele đến vị trí đội trưởng"
+            int btnTeleY = btnDungeonY + mBtnH + gap;
+            if (px >= btnX && px <= btnX + btnW && py >= btnTeleY && py <= btnTeleY + mBtnH) {
+                System.out.println("[AutoMenu] 'Tele đến đội trưởng' clicked!");
+                teleToLeader();
+                show = false;
+                return true;
+            }
+
+            // 4. Click "Vứt đồ rác"
+            int btnTrashY = btnTeleY + mBtnH + gap;
+            if (px >= btnX && px <= btnX + btnW && py >= btnTrashY && py <= btnTrashY + mBtnH) {
+                currentScreen = SCREEN_TRASH;
+                return true;
+            }
+
+            // 5. Click "Auto Đánh [BẬT / TẮT]"
+            int btnFightY = btnTrashY + mBtnH + gap;
+            if (px >= btnX && px <= btnX + btnW && py >= btnFightY && py <= btnFightY + mBtnH) {
                 autoFightEnabled = !autoFightEnabled;
                 System.out.println("[AutoMenu] Toggle autoFightEnabled: " + autoFightEnabled);
                 if (!autoFightEnabled) {
                     try { MCT.setAutoFight(false); } catch (Throwable t) {}
+                } else {
+                    startAutoSkillLoop();
                 }
                 return true;
             }
 
-            // Click "Cài đặt Chiêu đánh" button
-            int btnSkillY = btnFightY + btnH + 4;
-            if (px >= btnX && px <= btnX + btnW && py >= btnSkillY && py <= btnSkillY + btnH) {
+            // 6. Click "Cài đặt Chiêu đánh"
+            int btnSkillY = btnFightY + mBtnH + gap;
+            if (px >= btnX && px <= btnX + btnW && py >= btnSkillY && py <= btnSkillY + mBtnH) {
                 openSkillInput();
                 return true;
             }
 
-            // Click "Tốc độ Game" button
-            int btnSpeedY = btnSkillY + btnH + 4;
-            if (px >= btnX && px <= btnX + btnW && py >= btnSpeedY && py <= btnSpeedY + btnH) {
+            // 7. Click "Tốc độ Game"
+            int btnSpeedY = btnSkillY + mBtnH + gap;
+            if (px >= btnX && px <= btnX + btnW && py >= btnSpeedY && py <= btnSpeedY + mBtnH) {
                 speedIndex = (speedIndex + 1) % SPEED_LEVELS.length;
                 speedMultiplier = SPEED_LEVELS[speedIndex];
                 System.out.println("[AutoMenu] Speed set to: " + speedMultiplier + "x");
@@ -1169,6 +1366,8 @@ public final class AutoMenu {
                 System.out.println("[AutoMenu] Toggle autoFightEnabled: " + autoFightEnabled);
                 if (!autoFightEnabled) {
                     try { MCT.setAutoFight(false); } catch (Throwable t) {}
+                } else {
+                    startAutoSkillLoop();
                 }
                 return true;
             }
@@ -1228,6 +1427,39 @@ public final class AutoMenu {
 
             int closeBtnX = backBtnX + navBtnW + 8;
             // Click [Đóng] -> CHỈ ĐÓNG KHI CLICK VÀO ĐÂY
+            if (px >= closeBtnX - 4 && px <= closeBtnX + navBtnW + 4 && py >= navBtnY - 4 && py <= navBtnY + navBtnH + 4) {
+                show = false;
+                return true;
+            }
+
+        } else if (currentScreen == SCREEN_TRASH) {
+            int itemH = 17;
+            int itemGap = 2;
+            int listStartY = contentTop + 1;
+
+            // Click 7 trash drop options
+            for (int i = 0; i < TRASH_OPTIONS.length; i++) {
+                int itemY = listStartY + i * (itemH + itemGap);
+                if (px >= btnX && px <= btnX + btnW && py >= itemY && py <= itemY + itemH) {
+                    System.out.println("[AutoMenu] Clicked Drop Trash Option " + i + ": " + TRASH_OPTIONS[i]);
+                    dropTrash(i);
+                    return true;
+                }
+            }
+
+            int navBtnH = 18;
+            int navBtnY = y + h - 22;
+            int navBtnW = (w - 26) / 2;
+
+            int backBtnX = x + 9;
+            // Click [Quay lại]
+            if (px >= backBtnX - 4 && px <= backBtnX + navBtnW + 4 && py >= navBtnY - 4 && py <= navBtnY + navBtnH + 4) {
+                currentScreen = SCREEN_MAIN;
+                return true;
+            }
+
+            int closeBtnX = backBtnX + navBtnW + 8;
+            // Click [Đóng]
             if (px >= closeBtnX - 4 && px <= closeBtnX + navBtnW + 4 && py >= navBtnY - 4 && py <= navBtnY + navBtnH + 4) {
                 show = false;
                 return true;

@@ -17,4 +17,9 @@ public class MCT {
     public static void sendBytes(byte[] data) {}
     public static int getMyX() { return 0; }
     public static int getMyY() { return 0; }
+    public static Vector getBagVector() { return null; }
+    public static String getItemName(Object obj) { return null; }
+    public static int getItemId(Object obj) { return 0; }
+    public static int getItemCount(Object obj) { return 0; }
+    public static void dropItem(int itemId, int count) {}
 }
