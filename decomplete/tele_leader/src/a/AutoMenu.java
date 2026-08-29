@@ -19,6 +19,7 @@ public final class AutoMenu {
     public static final int SCREEN_TRASH = 3;
     public static final int SCREEN_TRAIN = 4;
     public static int currentScreen = SCREEN_MAIN;
+    public static int selectedTrashOption = -1;
 
     public static final String[] TRASH_OPTIONS = {
         "1. V\u1ee9t \u0111\u1ed3 ch\u01b0a gi\u00e1m \u0111\u1ecbnh",
@@ -57,6 +58,7 @@ public final class AutoMenu {
     private static Thread autoTrainSkillThread;
 
     // Feature toggle states
+    public static boolean isAutoFarm = false;
     public static boolean autoPlantEnabled = false;
     public static boolean autoHarvestEnabled = false;
     public static boolean isAutoPhuBan = false;
@@ -470,31 +472,324 @@ public final class AutoMenu {
     }
 
     /**
-     * Ghi log chuỗi text (message) đã được giải mã từ server ra file debug.txt
+     * Kiểm tra xem chuỗi text có phải là tin nhắn chat, rao bán hoặc rác không.
+     */
+    public static boolean isChatOrTrashMessage(String msg) {
+        if (msg == null) return true;
+        String trimmed = msg.trim();
+        if (trimmed.length() <= 2) return true;
+
+        // Mã màu chat / item link của MCVL (ví dụ *0#(804,37195152a)*6+15...)
+        if (trimmed.indexOf("*0#") != -1 || trimmed.indexOf("*1#") != -1 || trimmed.indexOf("*2#") != -1 ||
+            trimmed.indexOf("*3#") != -1 || trimmed.indexOf("*4#") != -1 || trimmed.indexOf("*5#") != -1 ||
+            trimmed.indexOf("*6#") != -1 || trimmed.indexOf("*7#") != -1 || trimmed.indexOf("*8#") != -1 ||
+            trimmed.indexOf("*9#") != -1 || trimmed.indexOf("#(") != -1 || trimmed.indexOf("a)*") != -1 ||
+            trimmed.indexOf(")*") != -1) {
+            return true;
+        }
+
+        String norm = normalize(trimmed);
+
+        // Kênh chat và từ khóa rao bán, buôn bán
+        if (norm.indexOf("zl") != -1 || norm.indexOf("zalo") != -1 || norm.indexOf("atm") != -1 ||
+            norm.indexOf("b ac") != -1 || norm.indexOf("sex") != -1 || norm.indexOf("the gioi") != -1 ||
+            norm.indexOf("bang hoi") != -1 || norm.indexOf("kenh") != -1 || norm.indexOf("rao ban") != -1 ||
+            norm.indexOf("mua ban") != -1 || norm.indexOf("gia re") != -1 || norm.indexOf("038") != -1 ||
+            norm.indexOf("093") != -1 || norm.indexOf("098") != -1 || norm.indexOf("090") != -1) {
+            return true;
+        }
+
+        // Bỏ qua Sôi nổi / Nhiệm vụ hàng ngày (CMD 2500 text)
+        if (trimmed.indexOf("@900") != -1 || trimmed.indexOf("@&_@") != -1 || norm.indexOf("soi noi") != -1 ||
+            norm.indexOf("dang nhap tro choi") != -1 || norm.indexOf("hoan thanh") != -1) {
+            return true;
+        }
+
+        // Bỏ qua tên trang bị / chỉ số / trạng thái / vật phẩm rác load thụ động khi vào game
+        if (trimmed.startsWith("+") || norm.equals("tu thai") || norm.equals("trang thai bao ho") ||
+            norm.equals("bach chien") || norm.equals("tai sinh") || norm.equals("phan toai") ||
+            norm.indexOf("(chua giam dinh)") != -1 || norm.equals("bach duoc") || norm.equals("giang ho lenh bai") ||
+            norm.equals("khinh sa lap") || norm.indexOf("khoang thach") != -1 || norm.equals("da song") || norm.equals("da nhe")) {
+            return true;
+        }
+
+        // Tên người gửi chat riêng lẻ (1 từ không có dấu cách và ngắn)
+        if (norm.indexOf(" ") == -1 && norm.length() < 20) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Kiểm tra xem mã Command ID có thuộc danh sách các chức năng quan trọng dùng để mod không.
+     */
+    public static boolean isImportantCmd(int cmd) {
+        switch (cmd) {
+            case 1009: // Túi đồ / Vứt đồ / Dùng đồ / Tách ô
+            case 1005: // Đối thoại NPC / Chuyển map / Chọn menu
+            case 1074: // Lựa chọn option đối thoại NPC
+            case 1004: // Thông báo hệ thống / Popup / Cảnh báo server
+            case 1312: // Trang viên / Nông trường / Trồng cây / Thu hoạch
+            case 1146: // Cập nhật thực thể nông trường
+            case 1170: // Teleport đội trưởng / Đội ngũ
+            case 1157: // Tấn công mục tiêu / Cast skill
+            case 1033: // Lệnh vứt đồ thay thế
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Kiểm tra xem chuỗi có liên quan đến các chức năng quan trọng dùng để mod không.
+     */
+    public static boolean isImportantServerMessage(String msg) {
+        if (msg == null) return false;
+        if (isChatOrTrashMessage(msg)) return false;
+
+        String norm = normalize(msg);
+
+        // Chức năng Phụ bản / Cấm địa / Boss
+        if (norm.indexOf("phu ban") != -1 || norm.indexOf("cam dia") != -1 ||
+            norm.indexOf("pho ban") != -1 || norm.indexOf("boss") != -1 ||
+            norm.indexOf("roi khoi") != -1 || norm.indexOf("qua ai") != -1 ||
+            norm.indexOf("noi nay khong") != -1 || norm.indexOf("so lan vao") != -1 || norm.indexOf("het luot") != -1 ||
+            norm.indexOf("gioi han") != -1) {
+            return true;
+        }
+
+        // Thông báo nhận được Lệnh Bài / phần thưởng thực sự
+        if ((norm.indexOf("nhan duoc") != -1 || norm.startsWith("ban nhan")) &&
+            (norm.indexOf("lenh bai") != -1 || norm.indexOf("kinh nghiem") != -1 || norm.indexOf("bac") != -1)) {
+            return true;
+        }
+
+        // Nhiệm vụ, Lời thoại NPC, Tùy chọn Menu
+        if (norm.indexOf("nhiem vu") != -1 || norm.indexOf("doi thoai") != -1 ||
+            norm.indexOf("lua chon") != -1 || norm.indexOf("xac nhan") != -1 ||
+            norm.indexOf("chap nhan") != -1 || norm.indexOf("tu choi") != -1) {
+            return true;
+        }
+
+        // Captcha chống bot
+        if (norm.indexOf("chuoi so") != -1 || norm.indexOf("phep") != -1 || norm.indexOf("nhap ma") != -1 ||
+            norm.indexOf("ma xac nhan") != -1) {
+            return true;
+        }
+
+        // Trạng thái hệ thống quan trọng
+        if (norm.indexOf("khong ton tai") != -1 || norm.indexOf("that bai") != -1 || norm.indexOf("khong the") != -1 ||
+            norm.indexOf("mat ket noi") != -1 || norm.indexOf("da chet") != -1 || norm.indexOf("hoi sinh") != -1 ||
+            norm.startsWith("[action]") || norm.startsWith("[autopb]") || norm.startsWith("[droptrash]")) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Ghi log chuỗi text (message) đã được giải mã từ server ra file debug.txt (chỉ ghi các thông điệp quan trọng để mod)
      */
     public static synchronized void logDebug(String text) {
         if (text == null || text.trim().length() == 0) return;
+        if (isChatOrTrashMessage(text) && !text.startsWith("[")) return;
+
+        long now = System.currentTimeMillis();
+        long sec = (now / 1000) % 60;
+        long min = (now / (1000 * 60)) % 60;
+        long hour = (now / (1000 * 60 * 60) + 7) % 24; // GMT+7
+        String timeStr = (hour < 10 ? "0" : "") + hour + ":" + (min < 10 ? "0" : "") + min + ":" + (sec < 10 ? "0" : "") + sec;
+        String line = "[" + timeStr + "] " + text + "\r\n";
+
+        // 1. Ghi vào thư mục chạy của giả lập (CWD)
         try {
             java.io.File file = new java.io.File("debug.txt");
             java.io.FileOutputStream fos = new java.io.FileOutputStream(file, true);
             java.io.OutputStreamWriter osw = new java.io.OutputStreamWriter(fos, "UTF-8");
-            long now = System.currentTimeMillis();
-            long sec = (now / 1000) % 60;
-            long min = (now / (1000 * 60)) % 60;
-            long hour = (now / (1000 * 60 * 60) + 7) % 24; // GMT+7
-            String timeStr = (hour < 10 ? "0" : "") + hour + ":" + (min < 10 ? "0" : "") + min + ":" + (sec < 10 ? "0" : "") + sec;
-            osw.write("[" + timeStr + "] " + text + "\r\n");
+            osw.write(line);
             osw.flush();
             osw.close();
             fos.close();
+        } catch (Throwable t) {}
+
+        // 2. Đồng thời ghi vào thư mục dự án logs/debug.txt
+        try {
+            java.io.File file2 = new java.io.File("E:/MCVL_3_DEV/Mod_Auto_1/logs/debug.txt");
+            if (file2.getParentFile() != null && !file2.getParentFile().exists()) {
+                file2.getParentFile().mkdirs();
+            }
+            java.io.FileOutputStream fos2 = new java.io.FileOutputStream(file2, true);
+            java.io.OutputStreamWriter osw2 = new java.io.OutputStreamWriter(fos2, "UTF-8");
+            osw2.write(line);
+            osw2.flush();
+            osw2.close();
+            fos2.close();
+        } catch (Throwable t2) {}
+    }
+
+    /**
+     * Ghi nhận và phân tích chi tiết gói tin gửi lên máy chủ [SEND] (Command ID, Parameters, Raw Bytes)
+     */
+    public static void logSendPacket(byte[] data) {
+        if (data == null || data.length < 2) return;
+
+        try {
+            java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(data);
+            java.io.DataInputStream dis = new java.io.DataInputStream(bais);
+
+            int cmd = dis.readShort(); // Command ID (2 bytes đầu)
+
+            // CHỈ ghi log các command quan trọng dùng để mod
+            if (!isImportantCmd(cmd)) {
+                return;
+            }
+
+            // Bỏ qua spam chiêu đánh thường khi đang auto đánh (CMD 1004)
+            if ((autoFightEnabled || isAutoTrain) && cmd == 1004) {
+                return;
+            }
+
+            StringBuffer sb = new StringBuffer();
+            sb.append("[SEND] CMD=").append(cmd).append(": ");
+
+            int paramIndex = 0;
+            boolean containsChat = false;
+
+            while (dis.available() > 0) {
+                int type = dis.read();
+                if (type == -1) break;
+
+                if (paramIndex > 0) sb.append(", ");
+                sb.append("p").append(paramIndex).append("=");
+
+                switch (type) {
+                    case 1:
+                    case 3: {
+                        short sVal = dis.readShort();
+                        sb.append("short(").append(sVal).append(")");
+                        break;
+                    }
+                    case 2: {
+                        byte bVal = dis.readByte();
+                        sb.append("byte(").append(bVal).append(")");
+                        break;
+                    }
+                    case 4:
+                    case 5: {
+                        int iVal = dis.readInt();
+                        sb.append("int(").append(iVal).append(")");
+                        break;
+                    }
+                    case 6: {
+                        int len = dis.readShort();
+                        if (len >= 0 && len <= dis.available()) {
+                            byte[] strBytes = new byte[len];
+                            dis.readFully(strBytes);
+                            String sVal = new String(strBytes, "UTF-8");
+                            if (isChatOrTrashMessage(sVal)) {
+                                containsChat = true;
+                            }
+                            sb.append("str(\"").append(sVal).append("\")");
+                        } else {
+                            sb.append("str(invalid_len=").append(len).append(")");
+                        }
+                        break;
+                    }
+                    case 7: {
+                        int len = dis.readShort();
+                        if (len >= 0 && len <= dis.available()) {
+                            byte[] bArr = new byte[len];
+                            dis.readFully(bArr);
+                            sb.append("bytes(len=").append(len).append(")");
+                        } else {
+                            sb.append("bytes(invalid_len=").append(len).append(")");
+                        }
+                        break;
+                    }
+                    default: {
+                        sb.append("unknown_type(").append(type).append(")");
+                        break;
+                    }
+                }
+                paramIndex++;
+            }
+
+            if (containsChat) {
+                return;
+            }
+
+            // Thêm raw bytes dạng mảng để người dùng / AI dễ dàng copy tạo packet mod
+            sb.append(" | raw=[");
+            for (int i = 0; i < data.length; i++) {
+                if (i > 0) sb.append(", ");
+                sb.append(data[i]);
+            }
+            sb.append("]");
+
+            String fullLog = sb.toString();
+            System.out.println(fullLog);
+            logDebug(fullLog);
+
         } catch (Throwable t) {
-            try {
-                java.io.FileWriter fw = new java.io.FileWriter("debug.txt", true);
-                fw.write(text + "\r\n");
-                fw.flush();
-                fw.close();
-            } catch (Throwable t2) {}
+            StringBuffer rawSb = new StringBuffer("[SEND] rawBytes=[");
+            for (int i = 0; i < data.length; i++) {
+                if (i > 0) rawSb.append(", ");
+                rawSb.append(data[i]);
+            }
+            rawSb.append("]");
+            logDebug(rawSb.toString());
         }
+    }
+
+    /**
+     * Ghi nhận và phân tích chi tiết gói tin nhận từ máy chủ [RECV] (Command ID, Parameters)
+     */
+    public static void logRecvPacket(int cmd, Vector params) {
+        if (params == null) return;
+
+        // CHỈ ghi log các command quan trọng dùng để mod
+        if (!isImportantCmd(cmd)) {
+            return;
+        }
+
+        StringBuffer sb = new StringBuffer();
+        sb.append("[RECV] CMD=").append(cmd).append(" (pCount=").append(params.size()).append("): ");
+
+        boolean containsChat = false;
+        for (int i = 0; i < params.size(); i++) {
+            if (i > 0) sb.append(", ");
+            sb.append("p").append(i).append("=");
+            Object obj = params.elementAt(i);
+            if (obj == null) {
+                sb.append("null");
+            } else if (obj instanceof an) {
+                sb.append("int(").append(((an)obj).a).append(")");
+            } else if (obj instanceof ba) {
+                sb.append("short(").append(((ba)obj).a).append(")");
+            } else if (obj instanceof t) {
+                sb.append("byte(").append(((t)obj).a).append(")");
+            } else if (obj instanceof j) {
+                String strVal = obj.toString();
+                if (isChatOrTrashMessage(strVal)) {
+                    containsChat = true;
+                }
+                sb.append("str(\"").append(strVal).append("\")");
+            } else if (obj instanceof byte[]) {
+                byte[] bArr = (byte[])obj;
+                sb.append("bytes(len=").append(bArr.length).append(")");
+            } else {
+                sb.append(obj.getClass().getName()).append("(").append(obj.toString()).append(")");
+            }
+        }
+
+        if (containsChat) {
+            return;
+        }
+
+        String fullLog = sb.toString();
+        System.out.println(fullLog);
+        logDebug(fullLog);
     }
 
     /**
@@ -543,10 +838,16 @@ public final class AutoMenu {
             public void run() {
                 try {
                     Vector bag = MCT.getBagVector();
-                    if (bag == null || bag.size() == 0) {
-                        System.out.println("[DropTrash] Bag is empty.");
+                    String optName = (type >= 0 && type < TRASH_OPTIONS.length) ? TRASH_OPTIONS[type] : ("Type " + type);
+                    int bagSize = (bag != null) ? bag.size() : 0;
+                    logDebug("[DropTrash] Starting " + optName + " (Bag size=" + bagSize + ")");
+                    System.out.println("[DropTrash] Starting " + optName + " (Bag size=" + bagSize + ")");
+
+                    if (bag == null || bagSize == 0) {
+                        logDebug("[DropTrash] Hanh trang trong hoac chua dong bo!");
                         return;
                     }
+
                     int droppedCount = 0;
                     for (int i = bag.size() - 1; i >= 0; i--) {
                         Object item = bag.elementAt(i);
@@ -554,6 +855,10 @@ public final class AutoMenu {
                             String name = MCT.getItemName(item);
                             if (name == null) name = "";
                             String norm = normalize(name);
+                            int itemId = MCT.getItemId(item);
+                            int count = MCT.getItemCount(item);
+                            if (count <= 0) count = 1;
+
                             boolean match = false;
 
                             if (type == 0) {
@@ -561,45 +866,80 @@ public final class AutoMenu {
                                 match = isUnidentified(item);
                             } else if (type == 1) {
                                 // 2. Vứt đay
-                                match = (norm.indexOf("day") != -1 || norm.indexOf("vai day") != -1 || norm.indexOf("co day") != -1);
+                                match = (norm.indexOf("day") != -1 || norm.indexOf("vai day") != -1 || norm.indexOf("co day") != -1 || norm.indexOf("gai") != -1);
                             } else if (type == 2) {
                                 // 3. Vứt tơ
                                 match = (norm.indexOf("to") != -1 || norm.indexOf("to tam") != -1 || norm.indexOf("soi to") != -1);
                             } else if (type == 3) {
                                 // 4. Vứt da sống
-                                match = (norm.indexOf("da song") != -1);
+                                match = (norm.indexOf("da song") != -1 || (norm.indexOf("da") != -1 && norm.indexOf("song") != -1) || norm.indexOf("da tho") != -1 || norm.indexOf("da thu") != -1);
                             } else if (type == 4) {
                                 // 5. Vứt da nhẹ
-                                match = (norm.indexOf("da nhe") != -1);
+                                match = (norm.indexOf("da nhe") != -1 || (norm.indexOf("da") != -1 && norm.indexOf("nhe") != -1));
                             } else if (type == 5) {
                                 // 6. Vứt khoáng thạch
-                                match = (norm.indexOf("khoang thach") != -1 || norm.indexOf("quang") != -1);
+                                match = (norm.indexOf("khoang thach") != -1 || norm.indexOf("khoang") != -1 || norm.indexOf("quang") != -1 || norm.indexOf("thach") != -1);
                             } else if (type == 6) {
                                 // 7. Vứt bạch dược
-                                match = (norm.indexOf("bach duoc") != -1);
+                                match = (norm.indexOf("bach duoc") != -1 || norm.indexOf("duoc") != -1 || norm.indexOf("thuoc") != -1);
                             }
 
                             if (match) {
-                                int itemId = MCT.getItemId(item);
-                                int count = MCT.getItemCount(item);
-                                if (count <= 0) count = 1;
+                                logDebug("[DropTrash] -> Phat hien '" + name + "' (id=" + itemId + ", count=" + count + ") -> Gui CMD 1009");
                                 System.out.println("[DropTrash] Dropping '" + name + "' (id=" + itemId + ", count=" + count + ")");
                                 try {
                                     MCT.dropItem(itemId, count);
                                     droppedCount++;
                                     Thread.sleep(120);
                                 } catch (Throwable t) {
-                                    System.out.println("[DropTrash] Drop packet error: " + t);
+                                    logDebug("[DropTrash] Drop packet error: " + t);
                                 }
                             }
                         }
                     }
+                    logDebug("[DropTrash] Hoan tat: Da gui lenh vut " + droppedCount + " o vat pham.");
                     System.out.println("[DropTrash] Completed dropping " + droppedCount + " items for option " + type);
                 } catch (Throwable t) {
+                    logDebug("[DropTrash] Exception: " + t);
                     System.out.println("[DropTrash] Exception: " + t);
                 }
             }
         }).start();
+    }
+
+    /**
+     * Vòng lặp chạy ngầm cho Auto Nông Trường (Trang viên).
+     */
+    private static Thread autoFarmThread;
+    public static void startAutoFarmLoop() {
+        if (!isAutoFarm) return;
+        if (autoFarmThread != null && autoFarmThread.isAlive()) return;
+
+        autoFarmThread = new Thread(new Runnable() {
+            public void run() {
+                System.out.println("[AutoFarm] Loop started. isAutoFarm=" + isAutoFarm + ", plant=" + autoPlantEnabled + ", harvest=" + autoHarvestEnabled);
+                // Tự động gửi gói tin vào trang viên (CMD 1312, Sub=13, PlayerID)
+                try {
+                    int myId = MCT.getPlayerId();
+                    if (myId > 0) {
+                        MCT.enterManor(myId);
+                    }
+                    Thread.sleep(1500);
+                } catch (Throwable t) {}
+
+                while (isAutoFarm) {
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException ie) {
+                        break;
+                    } catch (Throwable t) {
+                        try { Thread.sleep(2000); } catch (Throwable t2) {}
+                    }
+                }
+                System.out.println("[AutoFarm] Loop stopped.");
+            }
+        });
+        autoFarmThread.start();
     }
 
     /**
@@ -968,11 +1308,19 @@ public final class AutoMenu {
      */
     public static void onServerMessage(String msg) {
         if (msg == null) return;
-        String norm = normalize(msg);
-        System.out.println("[AutoPB-Msg] raw: '" + msg + "' | norm: '" + norm + "' | isAutoPhuBan=" + isAutoPhuBan + " | bossNum=" + bossNum);
 
-        // Ghi lại message đã được giải mã từ server ra file debug.txt
-        logDebug(msg);
+        // Bỏ qua hoàn toàn tin nhắn chat và tin nhắn rác (KHÔNG in console, KHÔNG lưu file)
+        if (isChatOrTrashMessage(msg)) {
+            return;
+        }
+
+        // CHỈ in console log và lưu log debug.txt đối với các command/thông điệp quan trọng dùng để mod
+        if (isImportantServerMessage(msg)) {
+            System.out.println("[ServerMsg-Mod] " + msg);
+            logDebug(msg);
+        }
+
+        String norm = normalize(msg);
 
         // 1. Tự động giải Captcha chống bot nếu xuất hiện (ghlb.jar z.java)
         if (msg.indexOf("Chu\u1ed1i s\u1ed1") != -1 || msg.indexOf("Chuoi so") != -1 || msg.indexOf("ph\u00e9p nh\u00e2n") != -1 || msg.indexOf("ph\u00e9p c\u1ed9ng") != -1) {
@@ -1243,7 +1591,11 @@ public final class AutoMenu {
 
             // 1. Auto Nông Trường
             int btnFarmY = contentTop;
-            drawButton(g, font, "Auto N\u00f4ng Tr\u01b0\u1eddng", btnX, btnFarmY, btnW, mBtnH, 0x3B2D1D, 0xE5A93C, 0xFFF799);
+            String farmBtnText = isAutoFarm ? "Auto N\u00f4ng Tr\u01b0\u1eddng [B\u1eacT]" : "Auto N\u00f4ng Tr\u01b0\u1eddng";
+            int farmBtnBg = isAutoFarm ? 0x1E4A28 : 0x3B2D1D;
+            int farmBtnBorder = isAutoFarm ? 0x4E9F3D : 0xE5A93C;
+            int farmBtnTextColor = isAutoFarm ? 0xD8E9A8 : 0xFFF799;
+            drawButton(g, font, farmBtnText, btnX, btnFarmY, btnW, mBtnH, farmBtnBg, farmBtnBorder, farmBtnTextColor);
 
             // 2. Auto Phụ Bản
             int btnDungeonY = btnFarmY + mBtnH + gap;
@@ -1302,35 +1654,45 @@ public final class AutoMenu {
             drawButton(g, font, "\u0110\u00f3ng", closeBtnX, closeBtnY, closeBtnW, closeBtnH, 0x4A3728, 0xE5A93C, 0xFFF799);
 
         } else if (currentScreen == SCREEN_FARM) {
-            // Button: Tự động trồng cây
-            int btnPlantY = contentTop + 6;
-            String plantText = "T\u1ef1 \u0111\u1ed9ng tr\u1ed3ng c\u00e2y" + (autoPlantEnabled ? " [B\u1eacT]" : " [T\u1eaeT]");
-            int plantBg = autoPlantEnabled ? 0x1E4A28 : 0x3B2D1D;
-            int plantBorder = autoPlantEnabled ? 0x4E9F3D : 0xE5A93C;
+            int itemH = 17;
+            int itemGap = 4;
+            int listStartY = contentTop + 6;
+
+            // 1. Tùy chọn Tự động trồng cây
+            int btnPlantY = listStartY;
+            String plantText = "1. T\u1ef1 \u0111\u1ed9ng tr\u1ed3ng c\u00e2y: [" + (autoPlantEnabled ? "B\u1eacT" : "T\u1eaeT") + "]";
+            int plantBg = autoPlantEnabled ? 0x1E4A28 : 0x2A2016;
+            int plantBorder = autoPlantEnabled ? 0x4E9F3D : 0x5C462C;
             int plantTextColor = autoPlantEnabled ? 0xD8E9A8 : 0xFFF799;
-            drawButton(g, font, plantText, btnX, btnPlantY, btnW, btnH, plantBg, plantBorder, plantTextColor);
+            drawButton(g, font, plantText, btnX, btnPlantY, btnW, itemH, plantBg, plantBorder, plantTextColor);
 
-            // Button: Tự động thu hoạch
-            int btnHarvestY = btnPlantY + btnH + 8;
-            String harvestText = "T\u1ef1 \u0111\u1ed9ng thu ho\u1ea1ch" + (autoHarvestEnabled ? " [B\u1eacT]" : " [T\u1eaeT]");
-            int harvestBg = autoHarvestEnabled ? 0x1E4A28 : 0x3B2D1D;
-            int harvestBorder = autoHarvestEnabled ? 0x4E9F3D : 0xE5A93C;
+            // 2. Tùy chọn Tự động thu hoạch
+            int btnHarvestY = btnPlantY + itemH + itemGap;
+            String harvestText = "2. T\u1ef1 \u0111\u1ed9ng thu ho\u1ea1ch: [" + (autoHarvestEnabled ? "B\u1eacT" : "T\u1eaeT") + "]";
+            int harvestBg = autoHarvestEnabled ? 0x1E4A28 : 0x2A2016;
+            int harvestBorder = autoHarvestEnabled ? 0x4E9F3D : 0x5C462C;
             int harvestTextColor = autoHarvestEnabled ? 0xD8E9A8 : 0xFFF799;
-            drawButton(g, font, harvestText, btnX, btnHarvestY, btnW, btnH, harvestBg, harvestBorder, harvestTextColor);
+            drawButton(g, font, harvestText, btnX, btnHarvestY, btnW, itemH, harvestBg, harvestBorder, harvestTextColor);
 
-            // Bottom [Quay lai] button
-            int backBtnW = Math.min(70, (w - 30) / 2);
-            int backBtnH = 19;
+            // Row 1: [START FARM / STOP FARM] button
+            int actBtnH = 21;
+            int actBtnY = y + h - 48;
+            String startText = isAutoFarm ? "STOP FARM" : "START FARM";
+            int startBg = isAutoFarm ? 0x8B0000 : 0x1E4A28;
+            int startBorder = isAutoFarm ? 0xFF4D4D : 0x4E9F3D;
+            int startTextColor = isAutoFarm ? 0xFFFFFF : 0xD8E9A8;
+            drawButton(g, font, startText, btnX, actBtnY, btnW, actBtnH, startBg, startBorder, startTextColor);
+
+            // Row 2: [Quay lại] and [Đóng]
+            int navBtnH = 18;
+            int navBtnY = y + h - 22;
+            int navBtnW = (w - 26) / 2;
+
             int backBtnX = x + 9;
-            int backBtnY = y + h - backBtnH - 6;
-            drawButton(g, font, "Quay l\u1ea1i", backBtnX, backBtnY, backBtnW, backBtnH, 0x3B2D1D, 0xE5A93C, 0xFFF799);
+            drawButton(g, font, "Quay l\u1ea1i", backBtnX, navBtnY, navBtnW, navBtnH, 0x3B2D1D, 0xE5A93C, 0xFFF799);
 
-            // Bottom [Dong] button
-            int closeBtnW = Math.min(70, (w - 30) / 2);
-            int closeBtnH = 19;
-            int closeBtnX = x + w - closeBtnW - 9;
-            int closeBtnY = y + h - closeBtnH - 6;
-            drawButton(g, font, "\u0110\u00f3ng", closeBtnX, closeBtnY, closeBtnW, closeBtnH, 0x4A3728, 0xE5A93C, 0xFFF799);
+            int closeBtnX = backBtnX + navBtnW + 8;
+            drawButton(g, font, "\u0110\u00f3ng", closeBtnX, navBtnY, navBtnW, navBtnH, 0x4A3728, 0xE5A93C, 0xFFF799);
 
         } else if (currentScreen == SCREEN_DUNGEON) {
             // Render 4 Dungeons of Cấm địa Tuyệt tình cốc
@@ -1397,28 +1759,45 @@ public final class AutoMenu {
             drawButton(g, font, "\u0110\u00f3ng", closeBtnX, navBtnY, navBtnW, navBtnH, 0x4A3728, 0xE5A93C, 0xFFF799);
 
         } else if (currentScreen == SCREEN_TRASH) {
-            int itemH = 17;
+            int itemH = 15;
             int itemGap = 2;
             int listStartY = contentTop + 1;
 
             for (int i = 0; i < TRASH_OPTIONS.length; i++) {
                 int itemY = listStartY + i * (itemH + itemGap);
-                drawButton(g, font, TRASH_OPTIONS[i], btnX, itemY, btnW, itemH, 0x2A2016, 0x5C462C, 0xFFF799);
+                boolean isSelected = (i == selectedTrashOption);
+                int itemBg = isSelected ? 0x1E4A28 : 0x2A2016;
+                int itemBorder = isSelected ? 0x4E9F3D : 0x5C462C;
+                int itemTextColor = isSelected ? 0xD8E9A8 : 0xFFF799;
+                String label = (isSelected ? "> " : "") + TRASH_OPTIONS[i] + (isSelected ? " [CH\u1eccN]" : "");
+                drawButton(g, font, label, btnX, itemY, btnW, itemH, itemBg, itemBorder, itemTextColor);
             }
 
-            // Bottom [Quay lai] button
-            int backBtnW = Math.min(70, (w - 30) / 2);
-            int backBtnH = 19;
-            int backBtnX = x + 9;
-            int backBtnY = y + h - backBtnH - 6;
-            drawButton(g, font, "Quay l\u1ea1i", backBtnX, backBtnY, backBtnW, backBtnH, 0x3B2D1D, 0xE5A93C, 0xFFF799);
+            // Row 1: [XÁC NHẬN VỨT] button
+            int actBtnH = 21;
+            int actBtnY = y + h - 48;
+            String confirmText = "X\u00c1C NH\u1eacN V\u1ee8T";
+            if (selectedTrashOption >= 0 && selectedTrashOption < TRASH_OPTIONS.length) {
+                confirmText = "X\u00c1C NH\u1eacN: " + TRASH_OPTIONS[selectedTrashOption];
+                if (font.stringWidth(confirmText) > btnW - 6) {
+                    confirmText = "X\u00c1C NH\u1eacN V\u1ee8T [" + (selectedTrashOption + 1) + "]";
+                }
+            }
+            int confirmBg = 0x8B0000;
+            int confirmBorder = 0xFF4D4D;
+            int confirmTextColor = 0xFFFFFF;
+            drawButton(g, font, confirmText, btnX, actBtnY, btnW, actBtnH, confirmBg, confirmBorder, confirmTextColor);
 
-            // Bottom [Dong] button
-            int closeBtnW = Math.min(70, (w - 30) / 2);
-            int closeBtnH = 19;
-            int closeBtnX = x + w - closeBtnW - 9;
-            int closeBtnY = y + h - closeBtnH - 6;
-            drawButton(g, font, "\u0110\u00f3ng", closeBtnX, closeBtnY, closeBtnW, closeBtnH, 0x4A3728, 0xE5A93C, 0xFFF799);
+            // Row 2: [Quay lại] and [Đóng]
+            int navBtnH = 18;
+            int navBtnY = y + h - 22;
+            int navBtnW = (w - 26) / 2;
+
+            int backBtnX = x + 9;
+            drawButton(g, font, "Quay l\u1ea1i", backBtnX, navBtnY, navBtnW, navBtnH, 0x3B2D1D, 0xE5A93C, 0xFFF799);
+
+            int closeBtnX = backBtnX + navBtnW + 8;
+            drawButton(g, font, "\u0110\u00f3ng", closeBtnX, navBtnY, navBtnW, navBtnH, 0x4A3728, 0xE5A93C, 0xFFF799);
 
         } else if (currentScreen == SCREEN_TRAIN) {
             int itemH = 15;
@@ -1588,6 +1967,9 @@ public final class AutoMenu {
             int btnTrashY = btnTeleY + mBtnH + gap;
             if (px >= btnX && px <= btnX + btnW && py >= btnTrashY && py <= btnTrashY + mBtnH) {
                 currentScreen = SCREEN_TRASH;
+                if (selectedTrashOption < 0) {
+                    selectedTrashOption = 1; // Mặc định chọn 2. Vứt đay
+                }
                 return true;
             }
 
@@ -1631,36 +2013,55 @@ public final class AutoMenu {
             }
 
         } else if (currentScreen == SCREEN_FARM) {
-            // Click "Tự động trồng cây" button
-            int btnPlantY = contentTop + 6;
-            if (px >= btnX && px <= btnX + btnW && py >= btnPlantY && py <= btnPlantY + btnH) {
+            int itemH = 17;
+            int itemGap = 4;
+            int listStartY = contentTop + 6;
+
+            // 1. Click "Tự động trồng cây" toggle
+            int btnPlantY = listStartY;
+            if (px >= btnX - 4 && px <= btnX + btnW + 4 && py >= btnPlantY - 2 && py <= btnPlantY + itemH + 2) {
                 autoPlantEnabled = !autoPlantEnabled;
+                System.out.println("[AutoMenu] Toggle autoPlantEnabled: " + autoPlantEnabled);
                 return true;
             }
 
-            // Click "Tự động thu hoạch" button
-            int btnHarvestY = btnPlantY + btnH + 8;
-            if (px >= btnX && px <= btnX + btnW && py >= btnHarvestY && py <= btnHarvestY + btnH) {
+            // 2. Click "Tự động thu hoạch" toggle
+            int btnHarvestY = btnPlantY + itemH + itemGap;
+            if (px >= btnX - 4 && px <= btnX + btnW + 4 && py >= btnHarvestY - 2 && py <= btnHarvestY + itemH + 2) {
                 autoHarvestEnabled = !autoHarvestEnabled;
+                System.out.println("[AutoMenu] Toggle autoHarvestEnabled: " + autoHarvestEnabled);
                 return true;
             }
 
-            // Click [Quay lai] button
-            int backBtnW = Math.min(70, (w - 30) / 2);
-            int backBtnH = 19;
+            // Row 1: Click [START FARM / STOP FARM]
+            int actBtnH = 21;
+            int actBtnY = y + h - 48;
+            if (px >= btnX - 6 && px <= btnX + btnW + 6 && py >= actBtnY - 6 && py <= actBtnY + actBtnH + 6) {
+                isAutoFarm = !isAutoFarm;
+                System.out.println("[AutoMenu] Toggle isAutoFarm: " + isAutoFarm);
+                logDebug("[Action] Clicked " + (isAutoFarm ? "START FARM" : "STOP FARM"));
+                if (isAutoFarm) {
+                    startAutoFarmLoop();
+                    show = false;
+                }
+                return true;
+            }
+
+            // Row 2: [Quay lại] and [Đóng]
+            int navBtnH = 18;
+            int navBtnY = y + h - 22;
+            int navBtnW = (w - 26) / 2;
+
             int backBtnX = x + 9;
-            int backBtnY = y + h - backBtnH - 6;
-            if (px >= backBtnX - 4 && px <= backBtnX + backBtnW + 4 && py >= backBtnY - 4 && py <= backBtnY + backBtnH + 4) {
+            // Click [Quay lại]
+            if (px >= backBtnX - 6 && px <= backBtnX + navBtnW + 6 && py >= navBtnY - 6 && py <= navBtnY + navBtnH + 6) {
                 currentScreen = SCREEN_MAIN;
                 return true;
             }
 
-            // Click [Dong] button -> CHỈ ĐÓNG KHI CLICK VÀO ĐÂY
-            int closeBtnW = Math.min(70, (w - 30) / 2);
-            int closeBtnH = 19;
-            int closeBtnX = x + w - closeBtnW - 9;
-            int closeBtnY = y + h - closeBtnH - 6;
-            if (px >= closeBtnX - 4 && px <= closeBtnX + closeBtnW + 4 && py >= closeBtnY - 4 && py <= closeBtnY + closeBtnH + 4) {
+            int closeBtnX = backBtnX + navBtnW + 8;
+            // Click [Đóng]
+            if (px >= closeBtnX - 6 && px <= closeBtnX + navBtnW + 6 && py >= navBtnY - 6 && py <= navBtnY + navBtnH + 6) {
                 show = false;
                 return true;
             }
@@ -1742,18 +2143,31 @@ public final class AutoMenu {
             }
 
         } else if (currentScreen == SCREEN_TRASH) {
-            int itemH = 17;
+            int itemH = 15;
             int itemGap = 2;
             int listStartY = contentTop + 1;
 
             // Click 7 trash drop options
             for (int i = 0; i < TRASH_OPTIONS.length; i++) {
                 int itemY = listStartY + i * (itemH + itemGap);
-                if (px >= btnX && px <= btnX + btnW && py >= itemY && py <= itemY + itemH) {
-                    System.out.println("[AutoMenu] Clicked Drop Trash Option " + i + ": " + TRASH_OPTIONS[i]);
-                    dropTrash(i);
+                if (px >= btnX - 4 && px <= btnX + btnW + 4 && py >= itemY - 2 && py <= itemY + itemH + 2) {
+                    selectedTrashOption = i;
+                    System.out.println("[AutoMenu] Selected Trash Option " + i + ": " + TRASH_OPTIONS[i]);
                     return true;
                 }
+            }
+
+            // Click [XÁC NHẬN VỨT] button
+            int actBtnH = 21;
+            int actBtnY = y + h - 48;
+            if (px >= btnX - 6 && px <= btnX + btnW + 6 && py >= actBtnY - 6 && py <= actBtnY + actBtnH + 6) {
+                if (selectedTrashOption < 0 || selectedTrashOption >= TRASH_OPTIONS.length) {
+                    selectedTrashOption = 1; // Mặc định vứt đay
+                }
+                System.out.println("[AutoMenu] >>> Clicked 'Xác Nhận Vứt' for option " + selectedTrashOption + ": " + TRASH_OPTIONS[selectedTrashOption]);
+                logDebug("[Action] Clicked Confirm Drop Trash: " + TRASH_OPTIONS[selectedTrashOption]);
+                dropTrash(selectedTrashOption);
+                return true;
             }
 
             int navBtnH = 18;
@@ -1762,14 +2176,14 @@ public final class AutoMenu {
 
             int backBtnX = x + 9;
             // Click [Quay lại]
-            if (px >= backBtnX - 4 && px <= backBtnX + navBtnW + 4 && py >= navBtnY - 4 && py <= navBtnY + navBtnH + 4) {
+            if (px >= backBtnX - 6 && px <= backBtnX + navBtnW + 6 && py >= navBtnY - 6 && py <= navBtnY + navBtnH + 6) {
                 currentScreen = SCREEN_MAIN;
                 return true;
             }
 
             int closeBtnX = backBtnX + navBtnW + 8;
             // Click [Đóng]
-            if (px >= closeBtnX - 4 && px <= closeBtnX + navBtnW + 4 && py >= navBtnY - 4 && py <= navBtnY + navBtnH + 4) {
+            if (px >= closeBtnX - 6 && px <= closeBtnX + navBtnW + 6 && py >= navBtnY - 6 && py <= navBtnY + navBtnH + 6) {
                 show = false;
                 return true;
             }

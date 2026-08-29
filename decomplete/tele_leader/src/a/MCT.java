@@ -23,4 +23,6 @@ public class MCT {
     public static int getItemCount(Object obj) { return 0; }
     public static void dropItem(int itemId, int count) {}
     public static void openDungeonMenu() {}
+    public static void enterManor(int playerId) {}
+    public static int getPlayerId() { return 0; }
 }

@@ -25,9 +25,13 @@ Tài liệu ghi nhận toàn bộ các thay đổi, tính năng mới, cấu tr�
     - `MCT.getEntityName(obj)` / `MCT.getEntityX(obj)` / `MCT.getEntityId(obj)`: Đọc thông tin tên, tọa độ và ID của quái/NPC trong `ay.k`.
     - `MCT.getMyX()` / `MCT.getMyY()`: Đọc tọa độ thực tế hiện tại của nhân vật người chơi (`ay.a.q`, `ay.a.r`).
     - `MCT.getAfString(obj)`: Đọc chuỗi text từ các đối tượng `a.j`.
-    - `MCT.getBagVector()`: Truy xuất danh sách hành trang `ay.a.a`.
-    - `MCT.dropItem(id, count)`: Gửi gói tin vứt vật phẩm `1033`.
+    - `MCT.getBagVector()`: Truy xuất danh sách hành trang người chơi qua `a.ay.a(1, -1)`.
+    - `MCT.dropItem(id, count)`: Gửi gói tin vứt vật phẩm `CMD 1009` (`u.a((short)3, itemId, 0, (byte)-2, 0, 0, 0)`).
+    - `MCT.enterManor(playerId)`: Gửi gói tin vào trang viên `CMD 1312` (`z.a().a(1312, new ba(13), new an(playerId))`).
+    - `MCT.getPlayerId()`: Đọc Player Instance ID của nhân vật chính (`ay.a.a.a`).
     - `MCT.sendBytes(byte[] data)`: Gửi mảng byte packet tùy ý lên server (`u.a.b(data)`).
+  - **Tự động tính toán StackMapTable (`ClassWriter.COMPUTE_FRAMES`):**
+    - Toàn bộ class `a/MCT` và các class được patch đều được sinh đầy đủ StackMapTable frames chuẩn cho Java 6/7/8 JVM, triệt tiêu hoàn toàn lỗi `VerifyError: Expecting a stackmap frame at branch target`.
 
 ---
 
@@ -76,10 +80,10 @@ Tài liệu ghi nhận toàn bộ các thay đổi, tính năng mới, cấu tr�
 
 ---
 
-### 7. Menu & Chức Năng "Vứt Đồ Rác" (`SCREEN_TRASH`)
-- **Menu chuyên dụng (`SCREEN_TRASH`):**
+### 7. Menu & Chức Năng "Vứt Đồ Rác" (`SCREEN_TRASH`) & Tự Động Vứt Khi Auto Train
+- **Giao diện Menu chuyên dụng (`SCREEN_TRASH`):**
   - Thêm nút **`Vứt đồ rác`** trên Menu chính để mở giao diện quản lý vứt đồ.
-  - Hỗ trợ 7 tùy chọn vứt nhanh theo loại:
+  - Hỗ trợ 7 tùy chọn loại rác:
     1. `1. Vứt đồ chưa giám định`
     2. `2. Vứt đay`
     3. `3. Vứt tơ`
@@ -87,18 +91,34 @@ Tài liệu ghi nhận toàn bộ các thay đổi, tính năng mới, cấu tr�
     5. `5. Vứt da nhẹ`
     6. `6. Vứt khoáng thạch`
     7. `7. Vứt bạch dược`
-- **Cơ chế gửi packet ngầm:**
-  - Tự động duyệt danh sách hành trang `MCT.getBagVector()` (`ay.a`), nhận diện tên và thuộc tính vật phẩm, sau đó gửi gói tin vứt đồ `1033` (`u.a((byte)1, ap.o, itemId, count, 0)`) với khoảng nghỉ 120ms đảm bảo an toàn và mượt mà.
+  - **Cơ chế Chọn Mục & Xác Nhận Vứt An Toàn:**
+    - Khi click vào 1 trong 7 mục: Mục đó sẽ được highlight sáng (màu xanh lá `[CHỌN]`) và lưu vào biến `selectedTrashOption`.
+    - Xuất hiện nút **`[XÁC NHẬN VỨT]`** màu đỏ nổi bật ở hàng hành động.
+    - Khi click **`[XÁC NHẬN VỨT]`**: Hệ thống mới bắt đầu quét và gửi gói tin vứt toàn bộ vật phẩm loại đó trong hành trang, tránh tình trạng click nhầm tự vứt đồ.
+- **Cơ chế gửi packet ngầm chuẩn xác (`CMD 1009`):**
+  - **Phân tích từ log thực tế:** Gói tin vứt bỏ vật phẩm chuẩn xác của game là `CMD 1009` với `p0 = short(3)` (Hành động Vứt Bỏ) và `p1 = int(itemId)` (ID thực thể duy nhất của vật phẩm trong túi).
+  - **Thực thi:** Tự động duyệt danh sách hành trang `MCT.getBagVector()` (`ay.a`), nhận diện vật phẩm qua `MCT.getItemName(item)` và gửi lệnh `u.a((short)3, itemId, 0, (byte)-2, (short)0, (short)0, 0)` với khoảng nghỉ 120ms/lần vứt để vứt sạch toàn bộ vật phẩm mục tiêu mà không bị ngắt kết nối.
 
 ---
 
-### 8. Hệ Thống Ghi Log Server Message Ra `debug.txt`
-- **Ghi nhận toàn bộ thông điệp máy chủ:**
-  - Toàn bộ chuỗi thông báo, cảnh báo và message dạng chữ từ server (được giải mã UTF-8 qua hàm `a.z.a(int)`) tự động được ghi nối tiếp vào file **`debug.txt`** nằm cùng thư mục chạy game.
-  - Định dạng từng dòng log:
-    ```text
-    [HH:mm:ss] <Nội dung tin nhắn / thông báo đã giải mã từ server>
-    ```
+### 8. Hệ Thống Ghi Log & Phân Tích Gói Tin Chuẩn (`debug.txt` Packet Inspector)
+- **Kiến trúc Packet Inspector toàn diện (SEND & RECV):**
+  - **Hook Gói Tin Gửi Đi (`[SEND]` - `a.bb.b([B)V`):**
+    - Bắt và bóc tách toàn bộ gói tin client gửi lên server.
+    - Giải mã Command ID (`short`) và các tham số payload theo thẻ kiểu (`int`, `short`, `byte`, `string`, `byte[]`).
+    - Trích xuất mảng `raw=[b0, b1, ...]` trực tiếp để người dùng/AI có thể copy ngay vào code mod mà không cần tự tính byte.
+  - **Hook Gói Tin Nhận Về (`[RECV]` - `a.ah.<init>(DataInputStream)`):**
+    - Bắt và giải mã toàn bộ gói tin server gửi về client trước khi phân phối tới các hàm xử lý trong game.
+    - Trích xuất Command ID (`short`) và danh sách tham số `Vector` (`an`, `ba`, `t`, `j`, `byte[]`).
+- **Bộ lọc thông minh chống rác & chống spam:**
+  - **Loại bỏ chat & rao bán:** Tự động phát hiện và bỏ qua mã màu format chat (`*0#`, `*1#`..), item tag (`#(..)`), tên người chơi đơn lẻ, kênh chat thế giới/bang hội, rao bán ac/vật phẩm (`zl`, `zalo`, `atm`, `sex`...).
+  - **Loại bỏ spam auto đánh & heartbeat ngầm (`CMD 1000`, `CMD 1311`):** Tự động bỏ qua packet ping mạng định kỳ (`CMD 1000`), spam chiêu đánh thường (`CMD 1004`), và gói tin telemetry/heartbeat ngầm của game engine (`CMD 1311`) để giữ log hoàn toàn sạch sẽ, chỉ ghi nhận tương tác thực tế của người chơi.
+- **Định dạng ghi log chuẩn phục vụ Mod:**
+  ```text
+  [HH:mm:ss] [SEND] CMD=1033: p0=byte(1), p1=int(0), p2=int(45291818), p3=short(1), p4=byte(0) | raw=[4, 9, 2, 1, 4, 0, 0, 0, 0, 4, 2, -80, -90, -86, 3, 0, 1, 2, 0]
+  [HH:mm:ss] [RECV] CMD=1032 (pCount=4): p0=int(101), p1=str("Nhận nhiệm vụ"), p2=int(1004), p3=int(1)
+  ```
+- **Vị trí lưu trữ file:** Ghi đồng thời vào cả thư mục giả lập (`D:\VL3_Tool\Java Emu Tool\AngelChipEmulatorEXE\debug.txt`) và thư mục dự án ([`E:\MCVL_3_DEV\Mod_Auto_1\logs\debug.txt`](file:///E:/MCVL_3_DEV/Mod_Auto_1/logs/debug.txt)).
 
 ---
 
@@ -139,13 +159,16 @@ Tài liệu ghi nhận toàn bộ các thay đổi, tính năng mới, cấu tr�
 | Tên Màn Hình | Hằng Số ID | Mô Tả |
 | :--- | :---: | :--- |
 | `SCREEN_MAIN` | `0` | Menu chính của Tool Auto (Nông trường, Phụ bản, Train, Tele, Vứt rác, Đánh, Chiêu, Tốc độ) |
-| `SCREEN_FARM` | `1` | Menu Auto Nông Trường (Trồng cây, Thu hoạch) |
+| `SCREEN_FARM` | `1` | Menu Auto Nông Trường (Trồng cây, Thu hoạch, START/STOP) |
 | `SCREEN_DUNGEON` | `2` | Menu Auto Phụ Bản Tuyệt Tình Cốc (4 cấp độ, START/STOP, Chiêu đánh) |
-| `SCREEN_TRASH` | `3` | Menu Vứt Đồ Rác (7 danh mục vứt nhanh 1-Click) |
+| `SCREEN_TRASH` | `3` | Menu Vứt Đồ Rác (7 danh mục vứt nhanh 1-Click kèm Xác Nhận) |
 | `SCREEN_TRAIN` | `4` | Menu Auto Train Quái (7 toggle lọc rác/nhặt đá, Chiêu train riêng, START/STOP) |
 
 | Biến Trạng Thái | Kiểu Dữ Liệu | Giá Trị Mặc Định | Chức Năng |
 | :--- | :---: | :---: | :--- |
+| `isAutoFarm` | `boolean` | `false` | Bật/tắt chế độ Auto Nông Trường (Trang viên) |
+| `autoPlantEnabled` | `boolean` | `false` | Tùy chọn Tự động trồng cây khi Auto Nông Trường |
+| `autoHarvestEnabled` | `boolean` | `false` | Tùy chọn Tự động thu hoạch khi Auto Nông Trường |
 | `isAutoPhuBan` | `boolean` | `false` | Bật/tắt chế độ Auto Phụ Bản Tuyệt Tình Cốc |
 | `isAutoTrain` | `boolean` | `false` | Bật/tắt chế độ Auto Train Quái |
 | `autoFightEnabled`| `boolean` | `false` | Bật/tắt chế độ Auto Đánh chung |

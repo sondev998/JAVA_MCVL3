@@ -89,10 +89,15 @@ finally { Pop-Location }
 
 # Inject bytecode hooks for AutoMenu popup (.auto chat & canvas) if AutoMenu is present
 $autoMenuClass = Join-Path $classesRoot 'a\AutoMenu.class'
+$patchAutoPopupJava = Join-Path $root 'build_tools\PatchAutoPopup.java'
 $patchAutoPopupClass = Join-Path $root 'build_tools\PatchAutoPopup.class'
 $java = Join-Path (Split-Path $javac) 'java.exe'
 if (!(Test-Path -LiteralPath $java)) {
     $java = Get-Command java.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source -First 1
+}
+
+if (Test-Path -LiteralPath $patchAutoPopupJava) {
+    & $javac -encoding UTF-8 "-XDignore.symbol.file" $patchAutoPopupJava
 }
 
 if ((Test-Path -LiteralPath $autoMenuClass) -and (Test-Path -LiteralPath $patchAutoPopupClass)) {

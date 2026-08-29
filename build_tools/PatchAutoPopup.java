@@ -23,6 +23,8 @@ public final class PatchAutoPopup {
     private static boolean injectedAcKeyPressed;
     private static boolean injectedAcSleep;
     private static boolean injectedZ;
+    private static boolean injectedAh;
+    private static boolean injectedBb;
 
     public static void main(String[] args) throws Exception {
         if (args.length < 3) {
@@ -66,6 +68,12 @@ public final class PatchAutoPopup {
                     } else if ("a/z.class".equals(name)) {
                         byte[] original = readAll(data);
                         target.write(patchZ(original));
+                    } else if ("a/ah.class".equals(name)) {
+                        byte[] original = readAll(data);
+                        target.write(patchAh(original));
+                    } else if ("a/bb.class".equals(name)) {
+                        byte[] original = readAll(data);
+                        target.write(patchBb(original));
                     } else {
                         copy(data, target);
                     }
@@ -111,11 +119,13 @@ public final class PatchAutoPopup {
         System.out.println(" - a/ac.class keyPressed injected: " + injectedAcKeyPressed);
         System.out.println(" - a/ac.class speed sleep wrapped: " + injectedAcSleep);
         System.out.println(" - a/z.class server message hook injected: " + injectedZ);
+        System.out.println(" - a/ah.class [RECV] packet hook injected: " + injectedAh);
+        System.out.println(" - a/bb.class [SEND] packet hook injected: " + injectedBb);
         System.out.println(" - a/MCT.class bytecode generated and injected.");
     }
 
     private static byte[] generateMCTClass() {
-        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
         cw.visit(Opcodes.V1_6, Opcodes.ACC_PUBLIC, "a/MCT", null, "java/lang/Object", null);
 
         // Constructor <init>()
@@ -429,14 +439,16 @@ public final class PatchAutoPopup {
         Label handlerBag = new Label();
         mvBag.visitTryCatchBlock(startBag, endBag, handlerBag, "java/lang/Throwable");
         mvBag.visitLabel(startBag);
-        mvBag.visitFieldInsn(Opcodes.GETSTATIC, "a/ay", "a", "Ljava/util/Vector;");
+        mvBag.visitInsn(Opcodes.ICONST_1);
+        mvBag.visitInsn(Opcodes.ICONST_M1);
+        mvBag.visitMethodInsn(Opcodes.INVOKESTATIC, "a/ay", "a", "(II)Ljava/util/Vector;");
         mvBag.visitLabel(endBag);
         mvBag.visitInsn(Opcodes.ARETURN);
         mvBag.visitLabel(handlerBag);
         mvBag.visitVarInsn(Opcodes.ASTORE, 0);
-        mvBag.visitInsn(Opcodes.ACONST_NULL);
+        mvBag.visitFieldInsn(Opcodes.GETSTATIC, "a/ay", "a", "Ljava/util/Vector;");
         mvBag.visitInsn(Opcodes.ARETURN);
-        mvBag.visitMaxs(1, 1);
+        mvBag.visitMaxs(2, 1);
         mvBag.visitEnd();
 
         // 16. public static String getItemName(Object obj)
@@ -489,7 +501,7 @@ public final class PatchAutoPopup {
         mvIcnt.visitLabel(c1);
         mvIcnt.visitVarInsn(Opcodes.ALOAD, 0);
         mvIcnt.visitTypeInsn(Opcodes.CHECKCAST, "a/bc");
-        mvIcnt.visitFieldInsn(Opcodes.GETFIELD, "a/bc", "a", "B");
+        mvIcnt.visitFieldInsn(Opcodes.GETFIELD, "a/bc", "a", "S");
         mvIcnt.visitLabel(c2);
         mvIcnt.visitInsn(Opcodes.IRETURN);
         mvIcnt.visitLabel(c3);
@@ -507,18 +519,24 @@ public final class PatchAutoPopup {
         Label d3 = new Label();
         mvDrop.visitTryCatchBlock(d1, d2, d3, "java/lang/Throwable");
         mvDrop.visitLabel(d1);
-        mvDrop.visitInsn(Opcodes.ICONST_1); // (byte)1
-        mvDrop.visitFieldInsn(Opcodes.GETSTATIC, "a/ap", "o", "I"); // ap.o
+        mvDrop.visitMethodInsn(Opcodes.INVOKESTATIC, "a/z", "a", "()La/z;");
+        mvDrop.visitIntInsn(Opcodes.SIPUSH, 1009);
+        mvDrop.visitTypeInsn(Opcodes.NEW, "a/ba");
+        mvDrop.visitInsn(Opcodes.DUP);
+        mvDrop.visitInsn(Opcodes.ICONST_3);
+        mvDrop.visitMethodInsn(Opcodes.INVOKESPECIAL, "a/ba", "<init>", "(S)V");
+        mvDrop.visitTypeInsn(Opcodes.NEW, "a/an");
+        mvDrop.visitInsn(Opcodes.DUP);
         mvDrop.visitVarInsn(Opcodes.ILOAD, 0); // itemId
-        mvDrop.visitVarInsn(Opcodes.ILOAD, 1); // count
-        mvDrop.visitInsn(Opcodes.I2S); // (short)count
-        mvDrop.visitInsn(Opcodes.ICONST_0); // (byte)0
-        mvDrop.visitMethodInsn(Opcodes.INVOKESTATIC, "a/u", "a", "(BIISB)V");
+        mvDrop.visitMethodInsn(Opcodes.INVOKESPECIAL, "a/an", "<init>", "(I)V");
+        mvDrop.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "a/z", "a", "(ILa/af;La/af;)V");
         mvDrop.visitLabel(d2);
         mvDrop.visitInsn(Opcodes.RETURN);
         mvDrop.visitLabel(d3);
         mvDrop.visitVarInsn(Opcodes.ASTORE, 2);
         mvDrop.visitInsn(Opcodes.RETURN);
+        mvDrop.visitMaxs(6, 3);
+        mvDrop.visitEnd();
         // 20. public static void openDungeonMenu()
         MethodVisitor mvOdm = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "openDungeonMenu", "()V", null, null);
         mvOdm.visitCode();
@@ -548,6 +566,52 @@ public final class PatchAutoPopup {
         mvOdm.visitMaxs(2, 1);
         mvOdm.visitEnd();
 
+        // 21. public static void enterManor(int playerId)
+        MethodVisitor mvEm = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "enterManor", "(I)V", null, null);
+        mvEm.visitCode();
+        Label em1 = new Label();
+        Label em2 = new Label();
+        Label em3 = new Label();
+        mvEm.visitTryCatchBlock(em1, em2, em3, "java/lang/Throwable");
+        mvEm.visitLabel(em1);
+        mvEm.visitMethodInsn(Opcodes.INVOKESTATIC, "a/z", "a", "()La/z;");
+        mvEm.visitIntInsn(Opcodes.SIPUSH, 1312);
+        mvEm.visitTypeInsn(Opcodes.NEW, "a/ba");
+        mvEm.visitInsn(Opcodes.DUP);
+        mvEm.visitIntInsn(Opcodes.BIPUSH, 13);
+        mvEm.visitMethodInsn(Opcodes.INVOKESPECIAL, "a/ba", "<init>", "(S)V");
+        mvEm.visitTypeInsn(Opcodes.NEW, "a/an");
+        mvEm.visitInsn(Opcodes.DUP);
+        mvEm.visitVarInsn(Opcodes.ILOAD, 0);
+        mvEm.visitMethodInsn(Opcodes.INVOKESPECIAL, "a/an", "<init>", "(I)V");
+        mvEm.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "a/z", "a", "(ILa/af;La/af;)V");
+        mvEm.visitLabel(em2);
+        mvEm.visitInsn(Opcodes.RETURN);
+        mvEm.visitLabel(em3);
+        mvEm.visitVarInsn(Opcodes.ASTORE, 1);
+        mvEm.visitInsn(Opcodes.RETURN);
+        mvEm.visitMaxs(6, 2);
+        mvEm.visitEnd();
+
+        // 22. public static int getPlayerId()
+        MethodVisitor mvGpi = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "getPlayerId", "()I", null, null);
+        mvGpi.visitCode();
+        Label gpi1 = new Label();
+        Label gpi2 = new Label();
+        Label gpi3 = new Label();
+        mvGpi.visitTryCatchBlock(gpi1, gpi2, gpi3, "java/lang/Throwable");
+        mvGpi.visitLabel(gpi1);
+        mvGpi.visitFieldInsn(Opcodes.GETSTATIC, "a/ay", "a", "La/af;");
+        mvGpi.visitFieldInsn(Opcodes.GETFIELD, "a/af", "a", "I");
+        mvGpi.visitLabel(gpi2);
+        mvGpi.visitInsn(Opcodes.IRETURN);
+        mvGpi.visitLabel(gpi3);
+        mvGpi.visitVarInsn(Opcodes.ASTORE, 0);
+        mvGpi.visitInsn(Opcodes.ICONST_0);
+        mvGpi.visitInsn(Opcodes.IRETURN);
+        mvGpi.visitMaxs(1, 1);
+        mvGpi.visitEnd();
+
         cw.visitEnd();
         return cw.toByteArray();
     }
@@ -569,6 +633,56 @@ public final class PatchAutoPopup {
                                 injectedZ = true;
                             }
                             super.visitInsn(opcode);
+                        }
+                    };
+                }
+                return visitor;
+            }
+        }, 0);
+        return writer.toByteArray();
+    }
+
+    private static byte[] patchAh(byte[] original) {
+        ClassReader reader = new ClassReader(original);
+        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+        reader.accept(new ClassAdapter(writer) {
+            public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                MethodVisitor visitor = super.visitMethod(access, name, descriptor, signature, exceptions);
+                if ("<init>".equals(name) && "(Ljava/io/DataInputStream;)V".equals(descriptor)) {
+                    return new MethodAdapter(visitor) {
+                        public void visitInsn(int opcode) {
+                            if (opcode == Opcodes.RETURN) {
+                                super.visitVarInsn(Opcodes.ALOAD, 0); // this (ah)
+                                super.visitFieldInsn(Opcodes.GETFIELD, "a/ah", "a", "S"); // short cmd
+                                super.visitVarInsn(Opcodes.ALOAD, 0); // this (ah)
+                                super.visitFieldInsn(Opcodes.GETFIELD, "a/ah", "a", "La/z;"); // z
+                                super.visitFieldInsn(Opcodes.GETFIELD, "a/z", "a", "Ljava/util/Vector;"); // Vector
+                                super.visitMethodInsn(Opcodes.INVOKESTATIC, "a/AutoMenu", "logRecvPacket", "(ILjava/util/Vector;)V");
+                                injectedAh = true;
+                            }
+                            super.visitInsn(opcode);
+                        }
+                    };
+                }
+                return visitor;
+            }
+        }, 0);
+        return writer.toByteArray();
+    }
+
+    private static byte[] patchBb(byte[] original) {
+        ClassReader reader = new ClassReader(original);
+        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+        reader.accept(new ClassAdapter(writer) {
+            public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                MethodVisitor visitor = super.visitMethod(access, name, descriptor, signature, exceptions);
+                if ("b".equals(name) && "([B)V".equals(descriptor)) {
+                    return new MethodAdapter(visitor) {
+                        public void visitCode() {
+                            super.visitCode();
+                            super.visitVarInsn(Opcodes.ALOAD, 1); // byte[] byArray
+                            super.visitMethodInsn(Opcodes.INVOKESTATIC, "a/AutoMenu", "logSendPacket", "([B)V");
+                            injectedBb = true;
                         }
                     };
                 }

@@ -1,0 +1,120 @@
+[00:59:02] [Action] Clicked Confirm Drop Trash: 2. Vứt đay
+[00:59:02] [DropTrash] Starting 2. Vứt đay (Bag size=39)
+[00:59:02] [DropTrash] -> Phat hien 'Dây cương Lạc đà sa mạc' (id=47820186, count=1) -> Gui CMD 1009
+[00:59:02] [SEND] CMD=1009: p0=short(3), p1=int(47820186) | raw=[3, -15, 3, 0, 3, 4, 2, -39, -83, -102]
+[00:59:02] [DropTrash] -> Phat hien 'Đay' (id=50085753, count=74) -> Gui CMD 1009
+[00:59:02] [SEND] CMD=1009: p0=short(3), p1=int(50085753) | raw=[3, -15, 3, 0, 3, 4, 2, -4, 63, 121]
+[00:59:03] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(47820186), p2=int(0), p3=byte(-1), p4=short(0), p5=short(0), p6=int(0)
+[00:59:03] [DropTrash] Hoan tat: Da gui lenh vut 2 o vat pham.
+[00:59:03] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(50085753), p2=int(0), p3=byte(-1), p4=short(0), p5=short(0), p6=int(0)
+[00:59:07] [SEND] CMD=1074: p0=byte(2) | raw=[4, 50, 2, 2]
+[00:59:10] [SEND] CMD=1009: p0=short(78) | raw=[3, -15, 3, 0, 78]
+[00:59:25] [Action] Clicked Confirm Drop Trash: 1. Vứt đồ chưa giám định
+[00:59:25] [DropTrash] Starting 1. Vứt đồ chưa giám định (Bag size=37)
+[00:59:25] [DropTrash] -> Phat hien 'Phất trần(Chưa giám định)' (id=59749814, count=1) -> Gui CMD 1009
+[00:59:25] [SEND] CMD=1009: p0=short(3), p1=int(59749814) | raw=[3, -15, 3, 0, 3, 4, 3, -113, -75, -74]
+[00:59:25] [DropTrash] -> Phat hien 'Nhẫn(Chưa giám định)' (id=59750105, count=1) -> Gui CMD 1009
+[00:59:25] [SEND] CMD=1009: p0=short(3), p1=int(59750105) | raw=[3, -15, 3, 0, 3, 4, 3, -113, -74, -39]
+[00:59:25] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(59749814), p2=int(290769528), p3=byte(-1), p4=short(1031), p5=short(-5533), p6=int(45174854)
+[00:59:25] [DropTrash] -> Phat hien 'Kiếm(Chưa giám định)' (id=59750478, count=1) -> Gui CMD 1009
+[00:59:25] [SEND] CMD=1009: p0=short(3), p1=int(59750478) | raw=[3, -15, 3, 0, 3, 4, 3, -113, -72, 78]
+[00:59:25] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(59750105), p2=int(0), p3=byte(-1), p4=short(0), p5=short(0), p6=int(0)
+[00:59:25] [DropTrash] -> Phat hien 'Đao(Chưa giám định)' (id=59750479, count=1) -> Gui CMD 1009
+[00:59:25] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(59750478), p2=int(0), p3=byte(-1), p4=short(0), p5=short(0), p6=int(0)
+[00:59:25] [SEND] CMD=1009: p0=short(3), p1=int(59750479) | raw=[3, -15, 3, 0, 3, 4, 3, -113, -72, 79]
+[00:59:26] [DropTrash] -> Phat hien 'Móng(Chưa giám định)' (id=59750480, count=1) -> Gui CMD 1009
+[00:59:26] [SEND] CMD=1009: p0=short(3), p1=int(59750480) | raw=[3, -15, 3, 0, 3, 4, 3, -113, -72, 80]
+[00:59:26] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(59750479), p2=int(290523088), p3=byte(-1), p4=short(1031), p5=short(19830), p6=int(45174854)
+[00:59:26] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(59750480), p2=int(0), p3=byte(-1), p4=short(0), p5=short(0), p6=int(0)
+[00:59:26] [DropTrash] -> Phat hien 'Yêu đái(Chưa giám định)' (id=59750484, count=1) -> Gui CMD 1009
+[00:59:26] [SEND] CMD=1009: p0=short(3), p1=int(59750484) | raw=[3, -15, 3, 0, 3, 4, 3, -113, -72, 84]
+[00:59:26] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(59750484), p2=int(0), p3=byte(-1), p4=short(0), p5=short(0), p6=int(0)
+[00:59:26] [DropTrash] -> Phat hien 'Quần(Chưa giám định)' (id=59750485, count=1) -> Gui CMD 1009
+[00:59:26] [SEND] CMD=1009: p0=short(3), p1=int(59750485) | raw=[3, -15, 3, 0, 3, 4, 3, -113, -72, 85]
+[00:59:26] [DropTrash] -> Phat hien 'Nhẫn(Chưa giám định)' (id=59759748, count=1) -> Gui CMD 1009
+[00:59:26] [SEND] CMD=1009: p0=short(3), p1=int(59759748) | raw=[3, -15, 3, 0, 3, 4, 3, -113, -36, -124]
+[00:59:26] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(59750485), p2=int(290769528), p3=byte(-1), p4=short(1031), p5=short(-5533), p6=int(45174854)
+[00:59:26] [DropTrash] -> Phat hien 'Giây chuyền(Chưa giám định)' (id=59759855, count=1) -> Gui CMD 1009
+[00:59:26] [SEND] CMD=1009: p0=short(3), p1=int(59759855) | raw=[3, -15, 3, 0, 3, 4, 3, -113, -36, -17]
+[00:59:26] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(59759748), p2=int(290769528), p3=byte(-1), p4=short(1031), p5=short(-5533), p6=int(45174854)
+[00:59:26] [DropTrash] -> Phat hien 'Phi phong(Chưa giám định)' (id=59760123, count=1) -> Gui CMD 1009
+[00:59:26] [SEND] CMD=1009: p0=short(3), p1=int(59760123) | raw=[3, -15, 3, 0, 3, 4, 3, -113, -35, -5]
+[00:59:26] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(59759855), p2=int(0), p3=byte(-1), p4=short(0), p5=short(0), p6=int(0)
+[00:59:26] [DropTrash] Hoan tat: Da gui lenh vut 10 o vat pham.
+[00:59:26] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(59760123), p2=int(0), p3=byte(-1), p4=short(0), p5=short(0), p6=int(0)
+[00:59:32] [SEND] CMD=1009: p0=short(78) | raw=[3, -15, 3, 0, 78]
+[00:59:37] [SEND] CMD=1074: p0=byte(2) | raw=[4, 50, 2, 2]
+[00:59:47] [Action] Clicked Confirm Drop Trash: 7. Vứt bạch dược
+[00:59:47] [DropTrash] Starting 7. Vứt bạch dược (Bag size=27)
+[00:59:47] [DropTrash] -> Phat hien 'Bạch dược' (id=59749918, count=8) -> Gui CMD 1009
+[00:59:47] [SEND] CMD=1009: p0=short(3), p1=int(59749918) | raw=[3, -15, 3, 0, 3, 4, 3, -113, -74, 30]
+[00:59:47] [DropTrash] Hoan tat: Da gui lenh vut 1 o vat pham.
+[00:59:47] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(59749918), p2=int(0), p3=byte(-1), p4=short(0), p5=short(0), p6=int(0)
+[00:59:54] [Action] Clicked Confirm Drop Trash: 6. Vứt khoáng thạch
+[00:59:54] [DropTrash] Starting 6. Vứt khoáng thạch (Bag size=26)
+[00:59:54] [DropTrash] -> Phat hien 'Tổ Mẫu Khoáng thạch' (id=47115245, count=38) -> Gui CMD 1009
+[00:59:54] [SEND] CMD=1009: p0=short(3), p1=int(47115245) | raw=[3, -15, 3, 0, 3, 4, 2, -50, -21, -19]
+[00:59:54] [DropTrash] -> Phat hien 'Hổ Nhãn Khoáng thạch' (id=49807176, count=11) -> Gui CMD 1009
+[00:59:54] [SEND] CMD=1009: p0=short(3), p1=int(49807176) | raw=[3, -15, 3, 0, 3, 4, 2, -9, -1, 72]
+[00:59:54] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(47115245), p2=int(0), p3=byte(-1), p4=short(0), p5=short(0), p6=int(0)
+[00:59:55] [DropTrash] -> Phat hien 'Biến Thạch Khoáng thạch' (id=50028689, count=13) -> Gui CMD 1009
+[00:59:55] [SEND] CMD=1009: p0=short(3), p1=int(50028689) | raw=[3, -15, 3, 0, 3, 4, 2, -5, 96, -111]
+[00:59:55] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(49807176), p2=int(290769528), p3=byte(-1), p4=short(1031), p5=short(-5533), p6=int(45174854)
+[00:59:55] [DropTrash] -> Phat hien 'Nam tích khoáng sơ cấp' (id=50083983, count=28) -> Gui CMD 1009
+[00:59:55] [SEND] CMD=1009: p0=short(3), p1=int(50083983) | raw=[3, -15, 3, 0, 3, 4, 2, -4, 56, -113]
+[00:59:55] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(50028689), p2=int(0), p3=byte(-1), p4=short(0), p5=short(0), p6=int(0)
+[00:59:55] [DropTrash] -> Phat hien 'Xá Lị Khoáng thạch' (id=50083985, count=7) -> Gui CMD 1009
+[00:59:55] [SEND] CMD=1009: p0=short(3), p1=int(50083985) | raw=[3, -15, 3, 0, 3, 4, 2, -4, 56, -111]
+[00:59:55] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(50083983), p2=int(0), p3=byte(-1), p4=short(0), p5=short(0), p6=int(0)
+[00:59:55] [DropTrash] -> Phat hien 'Canh ngân khoáng sơ cấp' (id=50083988, count=23) -> Gui CMD 1009
+[00:59:55] [SEND] CMD=1009: p0=short(3), p1=int(50083988) | raw=[3, -15, 3, 0, 3, 4, 2, -4, 56, -108]
+[00:59:55] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(50083985), p2=int(0), p3=byte(-1), p4=short(0), p5=short(0), p6=int(0)
+[00:59:55] [DropTrash] -> Phat hien 'Âm minh thạch sơ cấp' (id=50083999, count=28) -> Gui CMD 1009
+[00:59:55] [SEND] CMD=1009: p0=short(3), p1=int(50083999) | raw=[3, -15, 3, 0, 3, 4, 2, -4, 56, -97]
+[00:59:55] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(50083988), p2=int(0), p3=byte(-1), p4=short(0), p5=short(0), p6=int(0)
+[00:59:55] [DropTrash] -> Phat hien 'Tiêm Tinh Khoáng thạch' (id=59749808, count=4) -> Gui CMD 1009
+[00:59:55] [SEND] CMD=1009: p0=short(3), p1=int(59749808) | raw=[3, -15, 3, 0, 3, 4, 3, -113, -75, -80]
+[00:59:55] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(50083999), p2=int(290769528), p3=byte(-1), p4=short(1031), p5=short(-5533), p6=int(45174854)
+[00:59:55] [DropTrash] -> Phat hien 'Lam Bảo Khoáng thạch' (id=59749813, count=1) -> Gui CMD 1009
+[00:59:55] [SEND] CMD=1009: p0=short(3), p1=int(59749813) | raw=[3, -15, 3, 0, 3, 4, 3, -113, -75, -75]
+[00:59:55] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(59749808), p2=int(290769528), p3=byte(-1), p4=short(1031), p5=short(-5533), p6=int(45174854)
+[00:59:55] [DropTrash] -> Phat hien 'Hạo Anh Khoáng thạch' (id=59749830, count=3) -> Gui CMD 1009
+[00:59:55] [SEND] CMD=1009: p0=short(3), p1=int(59749830) | raw=[3, -15, 3, 0, 3, 4, 3, -113, -75, -58]
+[00:59:55] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(59749813), p2=int(22), p3=byte(-1), p4=short(1415), p5=short(3), p6=int(552407040)
+[00:59:56] [DropTrash] -> Phat hien 'Ảo Kim Khoáng thạch' (id=59749833, count=3) -> Gui CMD 1009
+[00:59:56] [SEND] CMD=1009: p0=short(3), p1=int(59749833) | raw=[3, -15, 3, 0, 3, 4, 3, -113, -75, -55]
+[00:59:56] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(59749830), p2=int(290769528), p3=byte(-1), p4=short(1031), p5=short(-5533), p6=int(45174854)
+[00:59:56] [DropTrash] -> Phat hien 'Nam Tích Khoáng thạch' (id=59749937, count=2) -> Gui CMD 1009
+[00:59:56] [SEND] CMD=1009: p0=short(3), p1=int(59749937) | raw=[3, -15, 3, 0, 3, 4, 3, -113, -74, 49]
+[00:59:56] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(59749833), p2=int(0), p3=byte(-1), p4=short(0), p5=short(0), p6=int(0)
+[00:59:56] [DropTrash] -> Phat hien 'Huyết Tinh Khoáng thạch' (id=59750127, count=2) -> Gui CMD 1009
+[00:59:56] [SEND] CMD=1009: p0=short(3), p1=int(59750127) | raw=[3, -15, 3, 0, 3, 4, 3, -113, -74, -17]
+[00:59:56] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(59749937), p2=int(290769528), p3=byte(-1), p4=short(1031), p5=short(-5533), p6=int(45174854)
+[00:59:56] [DropTrash] -> Phat hien 'Trầm Hương Khoáng thạch' (id=59750142, count=2) -> Gui CMD 1009
+[00:59:56] [SEND] CMD=1009: p0=short(3), p1=int(59750142) | raw=[3, -15, 3, 0, 3, 4, 3, -113, -74, -2]
+[00:59:56] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(59750127), p2=int(0), p3=byte(-1), p4=short(0), p5=short(0), p6=int(0)
+[00:59:56] [DropTrash] -> Phat hien 'Tử Ngọc Khoáng thạch' (id=59750487, count=1) -> Gui CMD 1009
+[00:59:56] [SEND] CMD=1009: p0=short(3), p1=int(59750487) | raw=[3, -15, 3, 0, 3, 4, 3, -113, -72, 87]
+[00:59:56] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(59750142), p2=int(22), p3=byte(-1), p4=short(1415), p5=short(3), p6=int(2135164416)
+[00:59:56] [DropTrash] Hoan tat: Da gui lenh vut 15 o vat pham.
+[00:59:56] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(59750487), p2=int(0), p3=byte(-1), p4=short(0), p5=short(0), p6=int(0)
+[01:00:03] [Action] Clicked Confirm Drop Trash: 5. Vứt da nhẹ
+[01:00:03] [DropTrash] Starting 5. Vứt da nhẹ (Bag size=11)
+[01:00:03] [DropTrash] -> Phat hien 'Da nhẹ' (id=50085738, count=78) -> Gui CMD 1009
+[01:00:03] [SEND] CMD=1009: p0=short(3), p1=int(50085738) | raw=[3, -15, 3, 0, 3, 4, 2, -4, 63, 106]
+[01:00:03] [DropTrash] Hoan tat: Da gui lenh vut 1 o vat pham.
+[01:00:04] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(50085738), p2=int(290523088), p3=byte(-1), p4=short(1031), p5=short(19830), p6=int(45174854)
+[01:00:06] [Action] Clicked Confirm Drop Trash: 4. Vứt da sống
+[01:00:06] [DropTrash] Starting 4. Vứt da sống (Bag size=10)
+[01:00:06] [DropTrash] -> Phat hien 'Da sống' (id=50085739, count=96) -> Gui CMD 1009
+[01:00:06] [SEND] CMD=1009: p0=short(3), p1=int(50085739) | raw=[3, -15, 3, 0, 3, 4, 2, -4, 63, 107]
+[01:00:06] [DropTrash] Hoan tat: Da gui lenh vut 1 o vat pham.
+[01:00:06] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(50085739), p2=int(290769528), p3=byte(-1), p4=short(1031), p5=short(-5533), p6=int(45174854)
+[01:00:07] [SEND] CMD=1074: p0=byte(2) | raw=[4, 50, 2, 2]
+[01:00:08] [Action] Clicked Confirm Drop Trash: 3. Vứt tơ
+[01:00:08] [DropTrash] Starting 3. Vứt tơ (Bag size=9)
+[01:00:08] [DropTrash] -> Phat hien 'Tơ' (id=50085724, count=85) -> Gui CMD 1009
+[01:00:08] [SEND] CMD=1009: p0=short(3), p1=int(50085724) | raw=[3, -15, 3, 0, 3, 4, 2, -4, 63, 92]
+[01:00:08] [DropTrash] Hoan tat: Da gui lenh vut 1 o vat pham.
+[01:00:08] [RECV] CMD=1009 (pCount=7): p0=short(3), p1=int(50085724), p2=int(290769528), p3=byte(-1), p4=short(1031), p5=short(-5533), p6=int(45174854)
+[01:00:12] [SEND] CMD=1009: p0=short(78) | raw=[3, -15, 3, 0, 78]
